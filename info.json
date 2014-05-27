@@ -108,7 +108,7 @@
         "ups_event" : {
             "name" : "UPS event",
             "incremental": false,
-            "data_type" : "DT_String",
+            "data_type" : "DT_UPSEvent",
             "conversion" : "",
             "history": {
                     "store": true,

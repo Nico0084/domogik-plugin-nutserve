@@ -1,0 +1,315 @@
+{
+    "products" : [{
+            "name" : "Uninterruptible Power Supplies",
+            "id" : "UPS_client",
+            "documentation" : "http://www.irtrans.de/en/",
+            "type" : "ups.device"
+        }
+    ],
+    "configuration" : [{
+            "default": "localhost", 
+            "description": "define host NUT server.", 
+            "key": "host", 
+            "name": "Ip nut server",
+            "required": "yes",
+            "type": "ipv4"
+        }, 
+        {
+            "default": "3493", 
+            "description": "NUT server port number", 
+            "key": "port", 
+            "name": "Port nut server",
+            "required": "yes", 
+            "type": "integer"
+        },
+        {
+            "default": "",
+            "description" : "NUT user login.",
+            "key" : "login",
+            "name": "login",
+            "required": "no", 
+            "type" : "string"
+        },
+        {
+            "default": "",
+            "description" : "NUT user password.",
+            "key" : "pwd",
+            "name": "Password",
+            "required": "no", 
+            "type" : "string"
+        }
+    ],
+    "commands" : {
+        "test_battery_start" : {
+            "name" : "Start a battery test",
+            "return_confirmation" : true,
+            "parameters" : [{
+                    "key" : "test",
+                    "data_type" : "DT_String",
+                    "conversion" : ""
+                }
+            ],
+            "xpl_command" : "xPL_test_battery_start"
+        },
+        "test_battery_start_deep" : {
+            "name" : "Start a deep battery test",
+            "return_confirmation" : true,
+            "parameters" : [{
+                    "key" : "test",
+                    "data_type" : "DT_String",
+                    "conversion" : ""
+                }
+            ],
+            "xpl_command" : "xPL_test_battery_start_deep"
+        }
+    },
+    "xpl_commands" : {
+        "xPL_test_battery_start" : {
+            "name" : "Start a battery test",
+            "schema" : "ups.basic",
+            "xplstat_name" : "xPL_ack-command",
+            "parameters" : {
+                "static" : [{
+                        "key" : "command",
+                        "value" : "test-battery-start"
+                    }
+                ],
+                "device" : []
+            }
+        },
+        "xPL_test_battery_start_deep" : {
+            "name" : "Start a deep battery test",
+            "schema" : "ups.basic",
+            "xplstat_name" : "xPL_ack-command",
+            "parameters" : {
+                "static" : [{
+                        "key" : "command",
+                        "value" : "test-battery-start-deep"
+                    }
+                ],
+                "device" : []
+            }
+        }
+    },
+    "sensors" : {
+        "ups_status" : {
+            "name" : "UPS Status",
+            "incremental": false,
+            "data_type" : "DT_UPSState",
+            "conversion" : "",
+            "history": {
+                    "store": true,
+                    "duplicate": false,
+                    "max": 0,
+                    "expire": 0,
+                    "round_value": 0
+                }
+        },
+        "ups_event" : {
+            "name" : "UPS event",
+            "incremental": false,
+            "data_type" : "DT_String",
+            "conversion" : "",
+            "history": {
+                    "store": true,
+                    "duplicate": false,
+                    "max": 0,
+                    "expire": 0,
+                    "round_value": 0
+                }
+        },
+        "input_voltage" : {
+            "name" : "Input current voltage",
+            "incremental": false,
+            "data_type" : "DT_Volt",
+            "conversion" : "",
+            "history": {
+                    "store": true,
+                    "duplicate": false,
+                    "max": 0,
+                    "expire": 0,
+                    "round_value": 0
+                }
+        },
+        "output_voltage" : {
+            "name" : "Output current voltage",
+            "incremental": false,
+            "data_type" : "DT_Volt",
+            "conversion" : "",
+            "history": {
+                    "store": true,
+                    "duplicate": false,
+                    "max": 0,
+                    "expire": 0,
+                    "round_value": 0
+                }
+        },
+        "battery_voltage" : {
+            "name" : "Battery current voltage",
+            "incremental": false,
+            "data_type" : "DT_Volt",
+            "conversion" : "",
+            "history": {
+                    "store": true,
+                    "duplicate": false,
+                    "max": 0,
+                    "expire": 0,
+                    "round_value": 0
+                }
+        },
+        "battery_charge" : {
+            "name" : "Battery current charge",
+            "incremental": false,
+            "data_type" : "DT_Scaling",
+            "conversion" : "",
+            "history": {
+                    "store": true,
+                    "duplicate": false,
+                    "max": 0,
+                    "expire": 0,
+                    "round_value": 0
+                }
+        },
+        "ack_command" : {
+            "name" : "UPS command Result",
+            "incremental": false,
+            "data_type" : "DT_String",
+            "conversion" : "",
+            "history": {
+                    "store": false,
+                    "duplicate": false,
+                    "max": 0,
+                    "expire": 0,
+                    "round_value": 0
+                }
+        }
+    },
+    "xpl_stats" : {
+        "xPL_UPS-Status" : {
+            "name" : "UPS Status",
+            "schema" : "ups.basic",
+            "parameters" : {
+                "static" : [	],
+                "device" : [],
+                "dynamic" : [{
+                        "key" : "status",
+                        "ignore_values" : "",
+                        "sensor" : "ups_status"
+                    },{
+                        "key" : "event",
+                        "ignore_values" : "",
+                        "sensor" : "ups_event"
+                    }
+                ]
+            }
+        },
+         "xPL_input-voltage" : {
+            "name" : "UPS input voltage",
+            "schema" : "sensor.basic",
+            "parameters" : {
+                "static" : [],
+                "device" : [],
+                "dynamic" : [{
+                        "key" : "input-voltage",
+                        "ignore_values" : "",
+                        "sensor" : "input_voltage"
+                    }
+                ]
+            }
+        },
+        "xPL_output-voltage" : {
+            "name" : "UPS outpout voltage",
+            "schema" : "sensor.basic",
+            "parameters" : {
+                "static" : [],
+                "device" : [],
+                "dynamic" : [{
+                        "key" : "output-voltage",
+                        "ignore_values" : "",
+                        "sensor" : "output_voltage"
+                    }
+                ]
+            }
+        },
+        "xPL_battery-voltage" : {
+            "name" : "UPS battery voltage",
+            "schema" : "sensor.basic",
+            "parameters" : {
+                "static" : [],
+                "device" : [],
+                "dynamic" : [{
+                        "key" : "battery-voltage",
+                        "ignore_values" : "",
+                        "sensor" : "battery_voltage"
+                    }
+                ]
+            }
+        },
+        "xPL_battery-charge" : {
+            "name" : "UPS battery charge",
+            "schema" : "sensor.basic",
+            "parameters" : {
+                "static" : [],
+                "device" : [],
+                "dynamic" : [{
+                        "key" : "battery-charge",
+                        "ignore_values" : "",
+                        "sensor" : "battery_charge"
+                    }
+                ]
+            }
+        },
+         "xPL_ack-command" : {
+            "name" : "received ups command result",
+            "schema" : "sensor.basic",
+            "parameters" : {
+                "static" : [{
+                        "key" : "command",
+                        "value" : "ack_command"
+                    }
+				],
+                "device" : [],
+                "dynamic" : [{
+                        "key" : "result",
+                        "ignore_values" : "",
+                        "sensor" : "ack_command"
+                    }
+                ]
+            }
+        }
+    },
+    "device_types" : {
+        "ups.device" : {
+            "description" : "UPS device",
+            "id" : "ups.device",
+            "name" : "Uninterruptible Power Supplies",
+            "commands" : ["test_battery_start", "test_battery_start_deep"],
+            "sensors" : ["ups_status", "ups_event", "input_voltage", "output_voltage", "battery_voltage", "battery_charge", "ack_command"],
+            "parameters" : [{
+                    "key" : "device",
+					"xpl": true,
+                    "description" : "UPS identification (nut ups name)",
+                    "type" : "string"
+                },
+                {
+                    "key" : "timer_poll",
+					"xpl": false,
+                    "description" : "Timer (seconds) for poll UPS status (default NUT Timer, 0 for desactivat)",
+                    "type" : "integer"
+                }
+            ]
+        }
+    },
+    "identity" : {
+        "author" : "Nico0084",
+        "author_email" : "nico84dev at gmail.com",
+        "tags" : ["NUT Client", "UPS Monitor"],
+        "dependencies" : [],
+        "description" : "Monitor UPS (Uninterruptible Power Supplies) through NUT lib",
+        "domogik_min_version" : "0.4.0",
+        "name" : "nutserver",
+         "type" : "plugin",
+        "version" : "0.1a0"
+    },
+    "json_version" : 2
+}

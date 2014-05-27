@@ -1,0 +1,10 @@
+.. _index:
+
+================
+Table of content
+================
+
+* :doc:`Plugin documentation </nutmonitor>`
+* :doc:`Change log</changelog>`
+
+

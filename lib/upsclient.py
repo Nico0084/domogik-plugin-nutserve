@@ -118,6 +118,7 @@ class UPSClient :
         "Initialise le client"
         self._manager = manager
         self._device = device
+        self._cptDmgUpDev = 100
         self.upsName = str(self.domogikDevice)
         self._log = log
         self.status = ""
@@ -140,13 +141,11 @@ class UPSClient :
             self._timerPollSt = TimerClient(timer,  self.getUPSStatus)
             self._timerPollSt.start()
             self._log.info("Timer polling UPS status fo UPS Client {0} call every {1} sec.".format(self.upsName,  timer))
-#            self._manager._xplPlugin.register_thread(self._timerPollSt)
         else :
             self._timerPollSt = None
             self._log.info("Timer polling UPS status desactivat fo UPS Client {0}".format(self.upsName))
         self._timerPollValue = TimerClient(30,  self.updateUPSVars)
         self._timerPollValue.start()
-#        self._manager._xplPlugin.register_thread(self._timerPollValue)
         self._log.info("Timer polling UPS Value fo UPS Client {0} call every {1} sec.".format(self.upsName,  30))
 
     # On accède aux attributs uniquement depuis les property
@@ -173,11 +172,14 @@ class UPSClient :
 
     def _getDomogikDevice(self):
         """Return device Id for xPL domogik device"""
-        if self._device :
-#            val = self._manager._xplPlugin.get_parameter(self._device, 'device')
-#            print '++++++++++++++++++++++ getDomogikDevice = ',  val
-            return self._manager._xplPlugin.get_parameter_for_feature(self._device, 'xpl_stats',  'xPL_UPS-Status',  'device')
-        else : return None
+        if self._cptDmgUpDev > 10 :
+            self._cptDmgUpDev = 0
+            if self._device :
+                return self._manager._xplPlugin.get_parameter_for_feature(self._device, 'xpl_stats',  'xPL_UPS-Status',  'device')
+            else : return None
+        else :
+            self._cptDmgUpDev += 1
+            return self.upsName
 
     def __initSensorsValue(self):
         self._sensorsValue = {'input.voltage' : 0, 'output.voltage' :0, 'battery.voltage' :0, 'battery.charge': 0}
@@ -194,7 +196,7 @@ class UPSClient :
     
     def getUPSVar(self, var):
         retval = self._manager.nut.getUPSVar(self.upsName,  var)
-        print '   getUPSVar : ',  retval
+#        print '   getUPSVar : ',  retval
         if retval['error'] == '':
 #            self.updateXplNutConnection(True)
             if retval.has_key('var') and retval['var'] == var :
@@ -202,13 +204,13 @@ class UPSClient :
             else : return ''
         else :
             self.status = 'unknown'
-            self._log.info(u"Client UPS, NUT connection as client fail. {0}".format(retval['error']))
+            self._log.info(u"In getUPSVar Client UPS, NUT connection as client fail. {0}".format(retval['error']))
             self.updateXplNutConnection(False)
             return ''
 
     def getUPSVars(self):
         retval = self._manager.nut.getUPSVars(self.upsName)
-        print '   getUPSVarssss : ',   retval
+#        print '   getUPSVarssss : ',   retval
         if retval['error'] == '':
             if retval['cmd'] == 'LIST VAR':
                 self.status = retval['data']['ups.status']
@@ -232,7 +234,7 @@ class UPSClient :
             self.updateXplNutConnection(True)
             return retval['data']
         else :
-            self._log.info(u"Client UPS, NUT connection as client fail. {0}".format(retval['error']))
+            self._log.info(u"In getUPSVars Client UPS, NUT connection as client fail. {0}".format(retval['error']))
             self.updateXplNutConnection(False)
         return retval
         
@@ -301,22 +303,23 @@ class UPSClient :
     def getUPSStatus(self):
         self._lock.acquire()
         status = self.getUPSVar('ups.status')
+        self._lock.release()
         if status =='' : 
             self._failedStatus += 1
             print '++++ Get UPS Status fail : {0} time ({1})'.format(self._failedStatus,  status)
         else :
             self._failedStatus = 0
             print '++++ Get UPS Status : ', status 
-        if status and status != self.status :
-            self.updateUPSVars()
-        self._lock.release()
+            if status != self.status :
+                self.updateUPSVars()
+
         
     def updateUPSVars(self):
         """Update les valeurs de l'UPS et envois les xpl-trig au besoin.""" 
         self._lock.acquire()
         upsVars = self.getUPSVars()
         if upsVars != {}:
-            print "*****",  upsVars
+            print "***** Update All UPS Variables"
             self._nutDevice.update(upsVars)
             data = self._nutDevice.checkAll()
             for var in data :
@@ -325,7 +328,7 @@ class UPSClient :
             for var in upsVars :
                 if self._updateSensorValue(var, upsVars[var]) :
                     self.sendXplUpdate('sensor.basic', {var.replace('.',  '-', 4): float(upsVars[var])})
-                else : print 'No Xpl Update for {0}, value : {1}'.format(var,  upsVars[var])
+#                else : print 'No Xpl Update for {0}, value : {1}'.format(var,  upsVars[var])
             if 'battery.charge' not in upsVars.keys():
                 btCh = self._nutDevice.getBatteryCharge()
                 if btCh :

@@ -25,7 +25,7 @@ UPSEvent =  {'onmains': 'The UPS has begun operating on mains power',
                     }
                     
 def createDevice(data):
-    """Create a device depending of 'driver.name' given by data dict.
+    """ Create a device depending of 'driver.name' given by data dict.
         - Developer : add your python class derived from DeviceBase class."""
     if data.has_key('driver.name') :
         if data['driver.name'] == 'blazer_usb' : return Blazer_USB(data)
@@ -35,8 +35,12 @@ def createDevice(data):
 class DeviceBase():
     """ Basic Class for driver functionnalities.
         - Developper : Use on inherite class to impllement new driver class
-                Overwrite methodes to handle xpl event."""
+                Overwrite  methods to handle xpl event."""
     def __init__(self,  data):
+        """ Not necessary overiwrited.
+            @param data : dict with all NUT vars formated by type.
+                type : dict
+        """
         self._connected = False
         self._vars = data
         self._xPLEvents = {}
@@ -45,6 +49,10 @@ class DeviceBase():
         self.checkAll()
         
     def update(self,  data):
+        """ Create or update internal data.
+            @param data : dict with all NUT vars formated by type.
+                type : dict
+        """
         if self._vars : self._vars.update(data)
         else : self._vars = data
         
@@ -68,17 +76,30 @@ class DeviceBase():
         return timer
         
     def checkAll(self):
+        """ Check All UPS stuff and return they values.
+            @return : list of all values
+                type : list of dict {'modify': True/false, 'status': Formated status, 'event':  xPL event according to xPL specifications}.
+            Developer :
+                You can overwrite this method but it is essential to call original method at first.
+                Overwrite could be necessary only for new check, otherwise overwrite existing methods.
+                Overwriting structure : 
+                    data = DeviceBase.checkAll(self)
+                    data = data.append(self.Your_New_Check())
+                    .....
+                    return data
+                
+        """
         data = []
         data.append(self.checkStatus())
         data.append(self.checkInputVoltage())
         data.append(self.checkInputFreq())
         data.append(self.checkOutputVoltage())
-        data.append( self.checkOutput())
+        data.append(self.checkOutput())
         data.append(self.checkTemperature())
         return data
      
     def checkConnection(self, state):
-        "Return UPS status with xPL specifications in key 'xPLData'."
+        """Return UPS status with xPL specifications in key 'xPLData'."""
         if self._connected != state :
             self._connected = state
             retVal = self.checkStatus(self._vars)
@@ -89,7 +110,7 @@ class DeviceBase():
         return {'modify' : False}
     
     def checkStatus(self,  data = None):
-        "Return UPS status with xPL specifications in key 'xPLData'."
+        """Return UPS status with xPL specifications in key 'xPLData'."""
         if not data : data = self._vars
         retVal = {'modify' : False}
         if data.has_key('ups.status'):
@@ -120,6 +141,7 @@ class DeviceBase():
         return retVal
     
     def checkBattery(self):
+        """Check battery status."""
         retVal = {'modify' : False}
         if self._vars.has_key('ups.status'):
             if self._vars['ups.status'] == 'LB' :
@@ -149,6 +171,16 @@ class DeviceBase():
         return None
         
     def getBatteryCharge(self):
+        """ Return battery level charge (0 to 100%).
+            @return : value charge (0 to 100%)
+                type: float
+            Developer :
+                You can overwrite this method but it is essential to call original method at first, Because if NUt serve has is own level it's probably the better.
+                Overwriting structure, begin your method with :
+                    charge = DeviceBase.getBatteryCharge(self)
+                    if charge: return charge
+                    ............
+        """
         if self._vars.has_key('battery.charge') : 
             return self._vars['battery.charge']
         return None

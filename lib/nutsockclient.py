@@ -7,10 +7,6 @@ import threading
 import time
 from distutils import version
 
-#################
-upsaddr='192.168.0.192' 
-upsport=3493
-
 class NUTSocketClient(asyncore.dispatcher):
 
     def __init__(self, host, port, login = None, pwd = None,  callback = None,  log = None):
@@ -58,38 +54,40 @@ class NUTSocketClient(asyncore.dispatcher):
     def handle_read(self):
         data = self.recv(8192)
 #        print data
-        if not self._sync :
-            print "*********** Broadcast Message received , data : ",  data
-            if self._cb : self._cb(self.received_message(data))
-            else : print " No callback registered."
-        else :
-            lines = data.split('\n')
-#            print 'Handle_read : \n', lines
-            if lines[0][:3] == 'ERR':
-                self._waitList = False
-                self._data = data
-            elif lines[0][:10] == 'BEGIN LIST':
-#                print 'start wait list'
-                if lines[len(lines)-2][:8] == 'END LIST': 
-#                    print 'End Wait List 0'
+        if data :
+            if not self._sync :
+                print "*********** Broadcast Message received , data : ",  data
+                if self._cb : self._cb(self.received_message(data))
+                else : print " No callback registered."
+            else :
+                lines = data.split('\n')
+    #            print 'Handle_read : \n', lines
+                if lines[0][:3] == 'ERR':
                     self._waitList = False
                     self._data = data
+                elif lines[0][:10] == 'BEGIN LIST':
+    #                print 'start wait list'
+                    if lines[len(lines)-2][:8] == 'END LIST': 
+    #                    print 'End Wait List 0'
+                        self._waitList = False
+                        self._data = data
+                    else:
+    #                    print 'Wait List, 0 ...',  lines[len(lines)-2]
+                        self._waitList = True
+                        self._bufData = data
+                elif lines[len(lines)-2][:8] == 'END LIST':
+    #                print 'End Wait List X ',  lines[len(lines)-2]
+                    self._data = self._bufData + data
+                    self._bufData = ''
+                    self._waitList = False
+                elif self._waitList : 
+    #                print 'Wait List, next  ...'
+                    self._bufData += data
                 else:
-#                    print 'Wait List, 0 ...',  lines[len(lines)-2]
-                    self._waitList = True
-                    self._bufData = data
-            elif lines[len(lines)-2][:8] == 'END LIST':
-#                print 'End Wait List X ',  lines[len(lines)-2]
-                self._data = self._bufData + data
-                self._bufData = ''
-                self._waitList = False
-            elif self._waitList : 
-#                print 'Wait List, next  ...'
-                self._bufData += data
-            else:
-#                print 'Not List'
-                self._data = data
-#        print '++++ END READ +++',  self._data
+                    self._data = data
+#                    print 'Not List' , self._data
+#            print '++++ END READ +++',  self._data
+        else : print 20*"-" + " No data to read"
             
     def writable(self):
         return (len(self.buffer) > 0)
@@ -110,7 +108,10 @@ class NUTSocketClient(asyncore.dispatcher):
         elif lines[0][:16] =="BEGIN LIST RANGE" : data = self._decodeListRange(lines)
         elif lines[0][:4] =="TYPE" : data = self._decodeVarType(lines)
         elif lines[0][:3] =="VAR" : data = self._decodeVar(lines)
+        elif lines[0][:9] =="NUMLOGINS" :
+            data = {'cmd':'NUMLOGINS', 'error': '',  'data': lines[0].split()[2]}
         elif lines[0][:3] =="ERR" : data = self._decodeErrorNUT(lines)
+        elif lines[0][:2] == "OK" : data = {'cmd': 'OK', 'error': '', 'data': {}}
         elif lines[0][:17] =="Network UPS Tools":
             data = {'cmd':'VER', 'error': '',  'data': lines[0].split()[4]}
             self.upscVer = data['data']
@@ -202,20 +203,20 @@ class NUTSocketClient(asyncore.dispatcher):
         if not self.connected : self.Connect_to_NUT()
         self._lastCmd = cmd
         self._sync = True
+        data = ''
         self.send(cmd + "\n")
         timeout = 10
         begin=time.time()
-        data = ''
         while 1:
             if time.time()-begin > timeout:
-                data = {'cmd': cmd, 'error': 'No response, timeout {0}s, check NUT server'.format(timeout), data:''}
+                data = {'cmd': cmd, 'error': 'No response, timeout {0}s, check NUT server'.format(timeout), 'data': ''}
                 break
             if self._data :
 #                print 'Handle data :\n',  self._data
                 data = self._data
                 self._data =''
                 break
-            else: time.sleep(0.1)
+            else: time.sleep(0.05)
         self._sync = False
         if type(data) is dict :
             return data
@@ -223,7 +224,10 @@ class NUTSocketClient(asyncore.dispatcher):
         
     def getUPSList(self):
         return self._sendNUTCmd("LIST UPS")
-        
+    
+    def getUPSNumLogin(self, ups):
+        return self._sendNUTCmd("GET NUMLOGINS %s" %ups)
+                
     def getUPSVars(self, ups):
         return self._sendNUTCmd('LIST VAR %s' %ups)
 
@@ -269,40 +273,58 @@ class NUTSocketClient(asyncore.dispatcher):
         else : return {'cmd': cmd, 
                        'error': "NUT version to old ({0}), {1} function not handle, Update NUT lib >= 2.6.4".format(self.upscVer, cmd)}
         
+    def sendInstCmd(self,  ups, cmd,  extra = None):
+        cmd = 'INSTCMD %s %s' %(ups,  cmd)
+        if extra: cmd = cmd + " {0}".format(extra)
+        print "***** Send : {0}".format(cmd)
+        return self._sendNUTCmd(cmd)
+        
+    def login(self, user,  pwd): 
+        cmd = 'USERNAME %s' %(user)
+        retVal = self._sendNUTCmd(cmd)
+        if retVal['error'] == '' and retVal['cmd'] =='OK':
+            cmd = 'PASSWORD %s' %(pwd)
+            retVal = self._sendNUTCmd(cmd)
+            if retVal['error'] == '' and retVal['cmd'] =='OK':
+                return {'cmd': 'login',  'error': '',  'data': 'login success'}
+        return retVal
+    
+    def logout(self):
+        retVal = self._sendNUTCmd('LOGOUT')
+        if retVal['error'] == '' and retVal['cmd'] =='OK':
+            return {'cmd': 'logout',  'error': '',  'data': 'Goodbye'}
+        return retVal
+        
 if __name__ == "__main__":
+    # Set  upsaddr,  upsport and upsname depending on your config
+    upsaddr = '192.168.0.192' 
+    upsport = 3493
+    upsname = 'Z3_SERVER'
     url = upsaddr + ":" + str(upsport)
     client = NUTSocketClient(upsaddr, upsport)
-    print "client démarré"
-    print client.getUPSList()
-    cpt = 0
-    timer = 0.0
-    try:
-        while cpt < 4 :
-            cpt +=1
-            print "\n*** getNUTHelp"
-            print client.getNUTHelp()
-            time.sleep(timer)
+    print "Client connected to {0}".format(upsname)
+    try:    
+            print "\n*** getNUTVersion"
+            print client.getNUTVersion()
             print "\n*** getNUTNetworkVersion "
             print client.getNUTNetworkVersion()
-            time.sleep(timer)
+            print "\n*** getNUTHelp"
+            print client.getNUTHelp()
+            print "\n*** getUPSList"
+            print client.getUPSList()
             print "\n*** getUPSVars"
-            print client.getUPSVars('Z3_SERVER')
-            time.sleep(timer)
+            print client.getUPSVars(upsname)
             print "\n*** getUPSRWVars"
-            print client.getUPSRWVars('Z3_SERVER')
+            print client.getUPSRWVars(upsname)
             print "\n*** getUPSCommands"
-            print client.getUPSCommands('Z3_SERVER')
-            time.sleep(timer)
+            print client.getUPSCommands(upsname)
             print "\n*** getUPSListClients"
-            print client.getUPSListClients('Z3_SERVER')
-            print "\n*** getUPSVars"
-            print client.getUPSVars('Z3_SERVER')
-            time.sleep(timer)
+            print client.getUPSListClients(upsname)
             print "\n*** getUPSVar"
-            print client.getUPSVar('Z3_SERVER',  'ups.status')
-            print "\n*** getUPSVar"
-            print client.getUPSVar('Z3_SERVER',  'ups.status')
-            time.sleep(timer*2)
+            print client.getUPSVar(upsname, 'ups.status')
+            print "\n*** getUPSNumLogin"
+            print client.getUPSNumLogin(upsname)            
+            
     finally:  # when you CTRL+C exit, we clean up
         client.close()
-        print "fin"
+        print "Terminated"

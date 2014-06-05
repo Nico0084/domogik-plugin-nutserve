@@ -8,12 +8,12 @@
     ],
     "configuration" : [{
             "default": "localhost", 
-            "description": "define host NUT server.", 
+            "description": "Define host NUT server.", 
             "key": "host", 
             "name": "Ip nut server",
             "required": "yes",
             "type": "ipv4"
-        }, 
+        },
         {
             "default": "3493", 
             "description": "NUT server port number", 
@@ -26,7 +26,7 @@
             "default": "",
             "description" : "NUT user login.",
             "key" : "login",
-            "name": "login",
+            "name": "Login",
             "required": "no", 
             "type" : "string"
         },

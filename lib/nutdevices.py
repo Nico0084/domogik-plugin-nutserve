@@ -1,28 +1,27 @@
  # !/usr/bin/python
 #-*- coding: utf-8 -*-
 
-UPSEvent =  {'onmains': 'The UPS has begun operating on mains power', 
-                    'onbattery':'The UPS has begun operating on battery power', 
-                    'battlow': 'The UPS battery is low',
-                    'battfull': 'The UPS battery is fully charged',
-                    'bti': 'Battery test initiated',
-                    'btp': 'Battery Test Passed',
-                    'btf': 'Battery Test Failed',
-                    'comms_lost': 'The host has lost communication with the UPS',
-                    'comms_ok': 'Communication with the UPS has been restored',
-                    'input_freq_error': 'The input frequency is out of range',
-                    'input_freq_ok': 'The input frequency has returned from an error condition.',
-                    'input_voltage_high': 'The input voltage is too high',
-                    'input_voltage_low': 'The input voltage is too low',
-                    'input_voltage_ok': 'The input voltage is OK following a previously "too low" or "too high" state',
-                    'output_voltage_high': 'The UPS output voltage is too high',
-                    'output_voltage_low': 'THe UPS output voltage is too low',
-                    'output_voltage_ok': 'The UPS output voltage has returned to normal following a "too high" or "too low" condition.',
-                    'output_overload': 'The UPS output is in overload',
-                    'output_ok': 'The UPS output has returned from overload',
-                    'temp_high': 'The UPS temperature is too high',
-                    'temp_ok': 'The UPS temperature has returned from an over-temperature condition'
-                    }
+XPL_Events =  [{'onmains': {'keep' : False, 'description': 'The UPS has begun operating on mains power'}, 
+                    'onbattery':{'keep' : False, 'description': 'The UPS has begun operating on battery power'}}, 
+                    {'battlow': {'keep' : True, 'description': 'The UPS battery is low'},
+                    'battfull': {'keep' : False, 'description':  'The UPS battery is fully charged'}}, 
+                    {'bti': {'keep' : False, 'description': 'Battery test initiated'},
+                    'btp': {'keep' : False, 'description': 'Battery Test Passed'},
+                    'btf': {'keep' : False, 'description': 'Battery Test Failed'}}, 
+                    {'comms_lost': {'keep' : True, 'description': 'The host has lost communication with the UPS'},
+                    'comms_ok': {'keep' : False, 'description': 'Communication with the UPS has been restored'}}, 
+                    {'input_freq_error': {'keep' : True, 'description': 'The input frequency is out of range'},
+                    'input_freq_ok': {'keep' : False, 'description': 'The input frequency has returned from an error condition.'}}, 
+                    {'input_voltage_high': {'keep' : True, 'description': 'The input voltage is too high'},
+                    'input_voltage_low': {'keep' : True, 'description': 'The input voltage is too low'},
+                    'input_voltage_ok': {'keep' : False, 'description': 'The input voltage is OK following a previously "too low" or "too high" state'}}, 
+                    {'output_voltage_high': {'keep' : True, 'description': 'The UPS output voltage is too high'},
+                    'output_voltage_low': {'keep' : True, 'description': 'THe UPS output voltage is too low'},
+                    'output_voltage_ok': {'keep' : False, 'description': 'The UPS output voltage has returned to normal following a "too high" or "too low" condition.'}},
+                    {'output_overload': {'keep' : True, 'description': 'The UPS output is in overload'},
+                    'output_ok': {'keep' : False, 'description': 'The UPS output has returned from overload'}},
+                    {'temp_high': {'keep' : True, 'description': 'The UPS temperature is too high'},
+                    'temp_ok': {'keep' : False, 'description': 'The UPS temperature has returned from an over-temperature condition'}}]
                     
 def createDevice(data):
     """ Create a device depending of 'driver.name' given by data dict.
@@ -43,8 +42,9 @@ class DeviceBase():
         """
         self._connected = False
         self._vars = data
-        self._xPLEvents = {}
-        for k in UPSEvent.keys() : self._xPLEvents[k] = False
+        self._XPL_Events = {}
+        for events in XPL_Events :
+            for event in events.keys() : self._XPL_Events[event] = False
         print self._vars
         self.checkAll()
         
@@ -56,17 +56,38 @@ class DeviceBase():
         if self._vars : self._vars.update(data)
         else : self._vars = data
         
-    def _handleXplEvent(self, xPLEvent,  status):
-        if self._xPLEvents.has_key(xPLEvent):
-            if self._xPLEvents[xPLEvent] != status :
-                self._xPLEvents[xPLEvent] = status
-                if xPLEvent == 'comms_ok' : self._xPLEvents['comms_lost'] = not status
-                elif xPLEvent == 'comms_lost' : self._xPLEvents['comms_ok'] = not status
-                return xPLEvent if status else ''
-            else: return ''
+    def handleXPL_Events(self, xPL_Event,  status):
+        """Handle xPL event value, return value to set in 'event' key of ups.basic xPL-trig message.
+            @param XPL_Event : id of the XPL_Events
+                type : str
+            @param status : Event status to set, True/False
+                type : bool
+            @return Value to set in 'event' xpl-trig key, A modify flag to give change status
+                type : tuple of str, bool
+        """
+        if self._XPL_Events.has_key(xPL_Event):
+            if self._XPL_Events[xPL_Event] != status :
+                self._XPL_Events[xPL_Event] = status
+                if status :
+                    for events in XPL_Events :
+                        if xPL_Event in events.keys() :
+                            for event in events.keys() :
+                                if event != xPL_Event : 
+                                    self._XPL_Events[event] = False
+                            break
+                    return True,  xPL_Event
+                else: return True, '', 
+            else:  
+                event = ''
+                if status :
+                    for events in XPL_Events :
+                        if xPL_Event in events.keys() :
+                            if events[xPL_Event]['keep'] : event = xPL_Event
+                            break
+                return False,  event
         else :
-            print "xPL key event '{0}' not exist.".format(xPLEvent)
-            return 'error : {0} not exist.'.format(xPLEvent)
+            print "xPL key event '{0}' not exist.".format(xPL_Event)
+            return  False, 'error : {0} not exist.'.format(xPL_Event),
 
     def getPollInterval(self):
         timer =0
@@ -104,8 +125,8 @@ class DeviceBase():
             self._connected = state
             retVal = self.checkStatus(self._vars)
             retVal['modify'] = True
-            if state : retVal['xPLData']['event'] = self._handleXplEvent('comms_ok',  True)
-            else : retVal['xPLData'] = {'status': 'unknown', 'event': self._handleXplEvent('comms_lost',  True)}
+            if state : retVal['xPLData']['event'] = self.handleXPL_Events('comms_ok',  True)[1]
+            else : retVal['xPLData'] = {'status': 'unknown', 'event': self.handleXPL_Events('comms_lost',  True)[1]}
             return retVal
         return {'modify' : False}
     
@@ -121,52 +142,41 @@ class DeviceBase():
                 self.update(data)
                 retVal['modify'] = True
             if status == 'OL' :
-                retVal['xPLData'] = {'status': 'mains', 'event': self._handleXplEvent('onmains',  True)}
-                self._handleXplEvent('onbattery',  False)
+                retVal['xPLData'] = {'status': 'mains', 'event': self.handleXPL_Events('onmains',  True)[1]}
+#                self.handleXPL_Events('onbattery',  False)
             elif  status == 'OB' :
-                retVal['xPLData'] = {'status': 'battery', 'event': self._handleXplEvent('onbattery',  True)}
-                self._handleXplEvent('onmains',  False)
+                retVal['xPLData'] = {'status': 'battery', 'event': self.handleXPL_Events('onbattery',  True)[1]}
+#                self.handleXPL_Events('onmains',  False)
             elif status == 'LB' : 
-                retVal['xPLData'] = {'status': 'unknown', 'event': self._handleXplEvent('battlow',  True)}
-                self._handleXplEvent('onmains',  False)
-                self._handleXplEvent('onbattery',  False)
+                retVal['xPLData'] = {'status': 'unknown', 'event' : ''}
+                retVal['modify'], retVal['xPLData']['event'] =  self.handleXPL_Events('battlow',  True)
+                self.handleXPL_Events('onmains',  False)
+                self.handleXPL_Events('onbattery',  False)
             else :
                 retVal['xPLData'] = {'status': 'unknown', 'event': 'unknown' if retVal['modify'] else ''}
-                self._handleXplEvent('onmains',  False)
-                self._handleXplEvent('onbattery',  False)
+                self.handleXPL_Events('onmains',  False)
+                self.handleXPL_Events('onbattery',  False)
             return retVal
         retVal['xPLData'] = {'status': 'unknown', 'event': 'unknown'}
-        self._handleXplEvent('onmains',  False)
-        self._handleXplEvent('onbattery',  False)
         return retVal
     
     def checkBattery(self):
         """Check battery status."""
-        retVal = {'modify' : False}
+        retVal = self.checkStatus()
         if self._vars.has_key('ups.status'):
-            if self._vars['ups.status'] == 'LB' :
-                retVal['modify'] = True if self._handleXplEvent('battlow', True) != '' else False
-                retVal['xPLData'] = {'status': 'unknown', 'event': 'battlow'}
-                self._handleXplEvent('battfull', False)
-                return retVal
+            if self._vars['ups.status'] == 'LB' : return retVal
         charge = self.getBatteryCharge()
         if charge :
             retVal = self.checkStatus(self._vars)
             if charge >= 100 :
-                retVal['xPLData']['event'] = self._handleXplEvent('battfull', True)
-                retVal['modify'] = True if retVal['xPLData']['event'] != '' else False 
+                retVal['modify'],  retVal['xPLData']['event'] = self.handleXPL_Events('battfull', True)
             elif charge <= 20 :
-                retVal['modify'] = True if self._handleXplEvent('battlow', True) != '' else False 
-                retVal['xPLData'] = {'status': 'unknown', 'event': 'battlow'}
-                self._handleXplEvent('battfull', False)
+                retVal['modify'],  retVal['xPLData']['event']  = self.handleXPL_Events('battlow', True) 
             else :
-                if self._xPLEvents['battfull'] : 
-                    retVal['modify'] = True
-                    self._handleXplEvent('battfull', False)
-                if self._xPLEvents['battlow'] : 
-                    retVal['modify'] = True
-                    self._handleXplEvent('battlow', False)
-                retVal['xPLData']['event'] = ''
+                if self._XPL_Events['battfull'] : 
+                    retVal['modify'],  retVal['xPLData']['event'] = self.handleXPL_Events('battfull', False)
+                if self._XPL_Events['battlow'] : 
+                    retVal['modify'],  retVal['xPLData']['event'] = self.handleXPL_Events('battlow', False)
             return retVal
         return None
         
@@ -224,20 +234,11 @@ class Blazer_USB(DeviceBase):
         if self._vars.has_key('input.voltage') :
             retVal = self.checkStatus()
             if self._vars['input.voltage'] >= high :
-                retVal['modify'] = True if self._handleXplEvent('input_voltage_high',  True) != '' else False
-                self._handleXplEvent('input_voltage_low',  False)
-                self._handleXplEvent('input_voltage_ok',  False)
-                retVal['xPLData']['event'] = 'input_voltage_high'
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_high',  True)
             elif self._vars['input.voltage'] <= low :
-                retVal['modify'] = True if self._handleXplEvent('input_voltage_low',  True) != '' else False
-                self._handleXplEvent('input_voltage_high',  False)
-                self._handleXplEvent('input_voltage_ok',  False)
-                retVal['xPLData']['event'] = 'input_voltage_low'
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_low',  True)
             else :
-                retVal['xPLData']['event'] = self._handleXplEvent('input_voltage_ok',  True)
-                retVal['modify'] = True if retVal['xPLData']['event']  != '' else False
-                self._handleXplEvent('input_voltage_high',  False)
-                self._handleXplEvent('input_voltage_low',  False)
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_ok',  True)
             return retVal                
         return None
         
@@ -247,13 +248,9 @@ class Blazer_USB(DeviceBase):
             low = self._vars['input.frequency.nominal'] * 0.98
             retVal = self.checkStatus()
             if (self._vars['input.frequency'] >= high) or (self._vars['input.frequency'] <= low):
-                retVal['modify'] = True if self._handleXplEvent('input_freq_error',  True) != '' else False
-                self._handleXplEvent('input_freq_ok',  False)
-                retVal['xPLData']['event'] = 'input_freq_error'
+               retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_freq_error',  True)
             else: 
-                retVal['xPLData']['event'] = self._handleXplEvent('input_freq_ok',  True)
-                retVal['modify'] = True if retVal['xPLData']['event']  != '' else False
-                self._handleXplEvent('input_freq_error',  False)
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_freq_ok',  True)
             return retVal      
         return None
     
@@ -265,20 +262,11 @@ class Blazer_USB(DeviceBase):
         if  self._vars.has_key('output.voltage') :
             retVal = self.checkStatus()
             if self._vars['output.voltage'] >= high :
-                retVal['modify'] = True if self._handleXplEvent('output_voltage_high',  True) != '' else False
-                self._handleXplEvent('output_voltage_low',  False)
-                self._handleXplEvent('output_voltage_ok',  False)
-                retVal['xPLData']['event'] = 'output_voltage_high'
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('output_voltage_high',  True)
             elif self._vars['output.voltage'] <= low :
-                retVal['modify'] = True if self._handleXplEvent('output_voltage_low',  True) != '' else False
-                self._handleXplEvent('output_voltage_high',  False)
-                self._handleXplEvent('output_voltage_ok',  False)
-                retVal['xPLData']['event'] = 'output_voltage_low'
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('output_voltage_low',  True)
             else :
-                retVal['xPLData']['event'] = self._handleXplEvent('output_voltage_ok',  True)
-                retVal['modify'] = True if retVal['xPLData']['event']  != '' else False
-                self._handleXplEvent('output_voltage_high',  False)
-                self._handleXplEvent('output_voltage_low',  False)
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('output_voltage_ok',  True)
             return retVal                
         return None
     
@@ -288,13 +276,9 @@ class Blazer_USB(DeviceBase):
             low = self._vars['input.current.nominal'] * 0.95
             retVal = self.checkStatus()
             if (self._vars['input.current'] >= high) or (self._vars['input.current'] <= low):
-                retVal['modify'] = True if self._handleXplEvent('output_overload',  True) != '' else False
-                self._handleXplEvent('output_ok',  False)
-                retVal['xPLData']['event'] = 'output_overload'
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('output_overload',  True)
             else: 
-                retVal['xPLData']['event'] = self._handleXplEvent('output_ok',  True)
-                retVal['modify'] = True if retVal['xPLData']['event']  != '' else False
-                self._handleXplEvent('output_overload',  False)
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('output_ok',  True)
             return retVal      
         return None
 
@@ -303,13 +287,9 @@ class Blazer_USB(DeviceBase):
             high = 40  # TODO : Check what is this ups temperature
             retVal = self.checkStatus()
             if (self._vars['ups.temperature'] >= high) :
-                retVal['modify'] = True if self._handleXplEvent('temp_high',  True) != '' else False
-                self._handleXplEvent('temp_ok',  False)
-                retVal['xPLData']['event'] = 'temp_high'
+                rretVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('temp_high',  True)
             else: 
-                retVal['xPLData']['event'] = self._handleXplEvent('temp_ok',  True)
-                retVal['modify'] = True if retVal['xPLData']['event']  != '' else False
-                self._handleXplEvent('temp_high',  False)
+                retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('temp_ok',  True)
             return retVal      
         return None
         
@@ -365,3 +345,15 @@ if __name__ == "__main__" :
     print dev.checkInputFreq()
     print dev.checkOutput()
     print dev.checkTemperature()
+    sample2['ups.status'] ='LB'
+    dev.update(sample2)
+    print dev.checkBattery()
+    print dev.checkBattery()
+    sample2['ups.status'] ='OB'
+    dev.update(sample2)
+    print dev.checkBattery()
+    print dev.checkBattery()
+    sample2['battery.voltage'] = 8
+    dev.update(sample2)
+    print dev.checkBattery()
+    print dev.checkAll()

@@ -35,8 +35,8 @@ The **ups.basic** message is used
     event=<last event : onmains, onbattery, battlow,......>
     }
 
-The sensor.basic message is used for additionnal data
-*****************************************************
+The **sensor.basic** message is used for additionnal data
+*********************************************************
 ::
 
     xpl-trig
@@ -66,10 +66,12 @@ Existing drivers device.
 
 - Basic:
    Must work with any NUT driver but handle only status and events ``onmains``, ``onbattery``, ``batterylow``, ``comm_ok`` and ``comm_lost``
-   If NUT serve return ``battery.charge`` driver can handle it.
+   If NUT server return ``battery.charge`` driver can handle it.
 
 - Blazer_USB:
-    Handle all basic + battery.charge, input, output voltage status and input frequence status
+    Handle all basic and if available by NUT server:
+    
+        ``battery.charge`` calculat, input-output voltage status , input frequence status, output current status and temperature status
 
 Add developement NUT driver compatibility
 -----------------------------------------
@@ -92,54 +94,48 @@ You just have to add new driver device class reference in ``createDevice`` metho
 
 Have a look to `Network UPS Tools <http://www.networkupstools.org/>`_ and get details informations on Driver section of `User manual pages <http://www.networkupstools.org/docs/man/index.html#User_man>`_
 
-Getting UPS variables available:
-********************************
+Getting UPS variables available
+*******************************
 
-- Function `LIST VAR <http://www.networkupstools.org/docs/developer-guide.chunked/ar01s09.html#_list>`_ of Network UPS Tools get all variable available.
-    Example: ::
+- Use `clients commands upsc <http://www.networkupstools.org/docs/man/upsc.html>`_ of Network UPS Tools to get all variables available :
+    Example : ::
 
-        # request
-        LIST VAR MyUPS
+        $ /bin/upsc MyUPS@localhost
+        battery.voltage.nominal: 12.0
+        battery.voltage: 13.60
+        beeper.status: enabled
+        device.type: ups
+        driver.version.internal: 0.04
+        driver.name: blazer_usb
+        driver.version: 2.6.3
+        driver.parameter.pollinterval: 2
+        driver.parameter.port: /dev/upsZ3
+        driver.parameter.productid: 5161
+        driver.parameter.vendorid: 0665
+        input.voltage.nominal: 230
+        input.voltage.fault: 240.2
+        input.voltage: 240.2
+        input.current.nominal: 2.0
+        input.frequency.nominal: 50
+        input.frequency: 49.9
+        output.voltage: 240.2
+        ups.type: offline
+        ups.vendorid: 0665
+        ups.delay.shutdown: 30
+        ups.productid: 5161
+        ups.delay.start: 180
+        ups.status: OL
 
-        # Response
-        BEGIN LIST VAR MyUPS
-        VAR MyUPS battery.voltage.nominal 12.0
-        VAR MyUPS battery.voltage 13.60
-        VAR MyUPS beeper.status 'enabled'
-        VAR MyUPS device.type 'ups'
-        VAR MyUPS driver.version.internal 0.04
-        VAR MyUPS driver.name 'blazer_usb'
-        VAR MyUPS driver.version '2.6.3'
-        VAR MyUPS driver.parameter.pollinterval 2
-        VAR MyUPS driver.parameter.port '/dev/upsZ3'
-        VAR MyUPS driver.parameter.productid 5161
-        VAR MyUPS driver.parameter.vendorid 0665
-        VAR MyUPS input.voltage.nominal 230
-        VAR MyUPS input.voltage.fault 240.2
-        VAR MyUPS input.voltage 240.2
-        VAR MyUPS input.current.nominal 2.0
-        VAR MyUPS input.frequency.nominal 50
-        VAR MyUPS input.frequency 49.9
-        VAR MyUPS output.voltage 240.2
-        VAR MyUPS ups.type 'offline'
-        VAR MyUPS ups.vendorid 0665
-        VAR MyUPS ups.delay.shutdown 30
-        VAR MyUPS ups.productid 5161
-        VAR MyUPS ups.delay.start 180
-        VAR MyUPS ups.status'OL
-        END LIST VAR MyUPS
-
-- Or using plugin tools ``lib/nutdevices.py``:
-
-    Simple set your own parameters on __main__ section of ``lib/nutdevices.py`` file : ::
+- Or using plugin tools ``lib/nutdevices.py`` :
+    Simple set your own parameters on __main__ section of ``lib/nutdevices.py`` file. ::
 
         if __name__ == "__main__":
-          # Set  upsaddr,  upsport and upsname depending on your config
-        upsaddr = <UPS server IP >
-        upsport = <UPS server port (generaly= 3493)>
-        upsname = <UPS name>
+              # Set  upsaddr,  upsport and upsname depending on your config
+            upsaddr = <UPS server IP >
+            upsport = <UPS server port (generaly= 3493)>
+            upsname = <UPS name>
 
-    Run python file ``lib/nutdevices.py`` and you get appropiat informations: ::
+    Run python file ``lib/nutdevices.py`` and you get appropriate informations. ::
 
         $ python nutsockclient.py
          +++ Internal NUTSocketClient created +++
@@ -160,7 +156,7 @@ Getting UPS variables available:
         {'cmd': 'LIST UPS', 'data': {'Z3_SERVER': 'Server Linux Internet'}, 'error': ''}
 
         *** getUPSVars
-        {'cmd': 'LIST VAR', 
+        {'cmd': 'LIST VAR',
             'data': {
                 'input.voltage.nominal': '230', 'beeper.status': 'enabled', 'input.voltage.fault': '238.4', 'device.type': 'ups',
                 'driver.version.internal': '0.04', 'input.voltage': '238.4', 'ups.type': 'offline', 'input.current.nominal': '2.0',
@@ -200,35 +196,50 @@ Creating new Driver device class
 ::
 
     class My_New_Device(DeviceBase):  # simply new class declaration
+        def checkInputVoltage(self):  # overwrite methodes class
+        ......
 
 Data format who must be return by methods
 *****************************************
-This a dict type with keys ::
 
-    DATA_TYPE_RETURN
+By calling source class method ``self.checkStatus()`` you get DATA_TYPE_RETURN value.
+DATA_TYPE_RETURN is a dict type with keys. ::
+
+    DATA_TYPE_RETURN :
     {
         'Modify' : True/False, # if the value change you must set to True.
-        'xPLData' : {  # Here all value who must transmit to xPL message
-            'status' : self.checkStatus(),  # Call original class method
-            'event' : self._handleXplEvent(<Your specific event>, <event status> True/False)
+        'xPLData' : {  # Here all value who must transmit to xPL message.
+            'status' : <'mains' or 'battery', or 'unknown'>
+            'event' : <All event define in XPL_Events>
         }
     }
 
-Use ``self._handleXplEvent`` to set UPSEvent status at True/False.
-    Method return a string for event key of DATA_TYPE_RETURN or empty ("") if no change with previous status.
-    Test if value is empty to set key 'Modify' at True or False
-    Set others depending UPSEvent status of new event, Ex:
+Use ``self.handleXplEvent`` to set XPL_Events status at True/False.
+    This method :
+        - Return a tuple with a boolean and a string for event key of DATA_TYPE_RETURN.
+        
+        - Manage an XPL_Event retention for some XPL Events values.
+    
+        - Ret others depending XPL_Events status of new event, Ex:
 
-        if input_voltage_low' set to True
+            if input_voltage_low' set to True
 
-        'input_voltage_high' must set to False
+            'input_voltage_high' must set to False
 
-        'input_voltage_ok' must set to False
+            'input_voltage_ok' must set to False
+       
+    How to use it : ::
+    
+        ....
+        retval = self.checkStatus()
+        retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events(< an XPL_Events>, True/False)
 
-Dependency UPSEvent status
-**************************
+Dependency XPL_Events status
+****************************
 
-UPSEvent are groups in dependency status, if an item change others items must change.
+XPL_Events are groups in dependencies status, if an item change others items must change.
+Developer has no need to handle dependencies, ``self.handleXplEvent`` method handle them.
+It's just for information.
 
 - On line status:
     'onmains' => The UPS has begun operating on mains power
@@ -281,13 +292,13 @@ UPSEvent are groups in dependency status, if an item change others items must ch
 
     'temp_ok' => The UPS temperature has returned from an over-temperature condition
 
-Overwrited methods:
-*******************
+Overwrited methods
+******************
 
 - getBatteryCharge:
-    You can overwrite this method but it is essential to call original method at first, Because if NUT server has is own level it's probably the better.
+    You can overwrite this method but it is essential to call source method at first, Because if NUT server has is own level it's probably the better.
 
-    Overwriting structure, begin your method with: ::
+    Overwriting structure: ::
 
         def getBatteryCharge(self):
             charge = DeviceBase.getBatteryCharge(self)
@@ -298,9 +309,9 @@ Overwrited methods:
 - checkAll:
     Check All UPS stuff and return they values in DATA_TYPE_RETURN list.
 
-    This method work with DeviceBase class, overwrite it only if new check method is necessary. Otherwise overwrite existing methods
+    This method work with DeviceBase class, overwrite it only if new check method is necessary. Otherwise overwrite existing methods.
 
-    You can overwrite this method but it is essential to call original method at first.
+    You can overwrite this method but it is essential to call source method at first.
 
     Overwrite could be necessary only for new check, otherwise overwrite existing methods.
 
@@ -313,7 +324,7 @@ Overwrited methods:
             return data
 
 - checkInputVoltage:
-    Orinal method do nothing and return None.
+    Source method do nothing and return None.
     You must overwrite it with status calculate to return event ``input_voltage_low``, ``input_voltage_high``, ``input_voltage_ok`` in format DATA_TYPE_RETURN
 
     Overwriting example: ::
@@ -332,46 +343,37 @@ Overwrited methods:
                 retVal = self.checkStatus()
                   # Test voltage status
                 if self._vars['input.voltage'] >= high :
-                      # Set UPSEvent and 'Modify' DATA_TYPE_RETURN format
-                    retVal['modify'] = True if self._handleXplEvent('input_voltage_high',  True) != '' else False
-                      # Set others depending UPSEvent
-                    self._handleXplEvent('input_voltage_low',  False)
-                    self._handleXplEvent('input_voltage_ok',  False)
-                      # Set 'xPLData', 'event' DATA_TYPE_RETURN format
-                    retVal['xPLData']['event'] = 'input_voltage_high'
+                      # Set 'Modify' and XPL_Events DATA_TYPE_RETURN format
+                    retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_high',  True)
                 elif self._vars['input.voltage'] <= low :
-                    retVal['modify'] = True if self._handleXplEvent('input_voltage_low',  True) != '' else False
-                    self._handleXplEvent('input_voltage_high',  False)
-                    self._handleXplEvent('input_voltage_ok',  False)
-                    retVal['xPLData']['event'] = 'input_voltage_low'
+                        # Set 'Modify' and XPL_Events DATA_TYPE_RETURN format
+                    retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_low',  True)
                 else :
-                    retVal['xPLData']['event'] = self._handleXplEvent('input_voltage_ok',  True)
-                    retVal['modify'] = True if retVal['xPLData']['event']  != '' else False
-                    self._handleXplEvent('input_voltage_high',  False)
-                    self._handleXplEvent('input_voltage_low',  False)
+                        # Set 'Modify' and XPL_Events DATA_TYPE_RETURN format
+                    retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_ok',  True)
                 return retVal # Return DATA_TYPE_RETURN format
             return None # Return None to report not handling UPS event
 
 - checkInputFreq:
-    Orinal method do nothing and return None.
+    Source method do nothing and return None.
     You must overwrite it with status calculate to return event ``input_freq_error``, ``input_freq_ok`` in format DATA_TYPE_RETURN
 
     Overwriting structure :  same principle than checkInputVoltage
 
 - checkOutputVoltage:
-    Orinal method do nothing and return None.
+    Source method do nothing and return None.
     You must overwrite it with status calculate to return event ``ouput_voltage_low``, ``output_voltage_high``, ``output_voltage_ok`` in format DATA_TYPE_RETURN
 
     Overwriting structure :  same principle than checkInputVoltage
 
 - checkOutput:
-    Orinal method do nothing and return None.
+    Source method do nothing and return None.
     You must overwrite it with status calculate to return event ``output_overload``, ``output_ok`` in format DATA_TYPE_RETURN
 
     Overwriting structure :  same principle than checkInputVoltage
 
 - checkTemperature:
-    Orinal method do nothing and return None.
+    Source method do nothing and return None.
     You must overwrite it with status calculate to return event ``temp_high``, ``temp_ok`` in format DATA_TYPE_RETURN
 
     Overwriting structure :  same principle than checkInputVoltage

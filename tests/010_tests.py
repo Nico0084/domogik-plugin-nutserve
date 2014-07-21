@@ -20,19 +20,15 @@ import threading
 import time
 
 ### global variables
-DEVICE_NAME="IRTrans_1"
-DEVICE_PATH = "/usr/local/irtrans"
-DEVICE_IP_SERVER = "localhost"
-DEVICE_IP_IRTRANS = "162.168.0.175"
-CODE_IR = "[T]0[D]2100010000101101111100100000011110000000000000000000000000100000032100010000101101111100100000000000000000010000010000101000000000011110101000000000000000000000000000000000000000000000000000000110000000000000000010101110"
-TIMING = "[0][N]4[1]440 448[2]440 1288[3]3448 1720[4]408 29616[RC]1[RP]0[FREQ]38"
+DEVICE_NAME="Z3_SERVER"
+TIMER_POLL = 3
 
-class IRTransTestCase(PluginTestCase):
+class NUTServeTestCase(PluginTestCase):
 
     def test_0100_dummy(self):
         self.assertTrue(True)
 
-    def test_0110_send_code_standard(self):
+    def test_0110_send_test_battery(self):
         """ check if the xpl messages about get_switch_state are OK
             Sample message : 
             xpl-trig
@@ -56,25 +52,12 @@ class IRTransTestCase(PluginTestCase):
         global xpl_plugin
         
         # do the test
-        print(u"********** start testing xpl command send standard code IR.")
-        command = TestCommand(self,  device_id,  'send_standard')
-        print (u'try to send xpl_cmnd fake....')   # "command" : "send",  "datatype" : "IRTrans standard", 
-        self.assertTrue(command.test_XplCmd({"code": CODE_IR,  "timing": TIMING}, {"result" :"ok"}))
+        print(u"********** start testing xpl command send test_battery_start.")
+        command = TestCommand(self,  device_id,  'test_battery_start')
+        print (u'try to send xpl_cmnd fake....')  
+        self.assertTrue(command.test_XplCmd({"test": 'a battery test',  "command": 'test-battery-start'}, {"result" :"ok"}))
         msg1_time = datetime.now()
         time.sleep(8)
-
-    def assert_Xpl_Stat_Ack_Wait(self, xplMsg) :
-        """Assert a xpltrig for waiting a switch state"""
-        print(u"Check that a message about xpl stat ack is sent. The message must be received once time.")
-        schema,  data = xplMsg
-        print "schema" , schema
-        print "data", data
-        self.assertTrue(self.wait_for_xpl(xpltype = "xpl-trig",
-                                  xplschema = schema,
-                                  xplsource = "domogik-{0}.{1}".format(self.name, get_sanitized_hostname()),
-                                  data = data,
-                                  timeout = 60))
-        print "listener ack running"
 
     def send_xplTrig(self, data):
         """ Send xPL fake message on network
@@ -97,9 +80,9 @@ class IRTransTestCase(PluginTestCase):
         msg = XplMessage()
         msg.set_type("xpl-cmnd")
      #   msg.set_header(source ="domogik-{0}.{1}".format(self.name, get_sanitized_hostname()))
-        msg.set_schema("irtrans.basic")
+        msg.set_schema("ups.basic")
         msg.add_data(data)
-        print (u"send fake xpl cmd switch on : {0}".format(msg))
+        print (u"send fake xpl cmd on : {0}".format(msg))
         xpl_plugin.myxpl.send(msg)
 
 if __name__ == "__main__":
@@ -107,7 +90,7 @@ if __name__ == "__main__":
     ### configuration
 
     # set up the xpl features
-    xpl_plugin = XplPlugin(name = 'testirtr', 
+    xpl_plugin = XplPlugin(name = 'testnut', 
                            daemonize = False, 
                            parser = None, 
                            nohub = True,
@@ -117,12 +100,12 @@ if __name__ == "__main__":
     th.start()
 
     # set up the plugin name
-    name = "irtrans"
+    name = "nutserve"
 
     # set up the configuration of the plugin
     # configuration is done in test_0010_configure_the_plugin with the cfg content
     # notice that the old configuration is deleted before
-    cfg = {'configured' : True }
+    cfg = {'configured': True, 'host': '192.168.0.192', 'port': 3493, 'login': '', 'pwd': ''}
 
     ### start tests
 
@@ -139,8 +122,8 @@ if __name__ == "__main__":
 
     # create a test device
     try:
-        device_id = td.create_device(client_id, "test_IRTrans_Lan", "irtrans_lan.device")
-        params = {"device" : DEVICE_NAME, "server_path" : DEVICE_PATH, "ip_server": DEVICE_IP_SERVER, "irtrans_ip": DEVICE_IP_IRTRANS}
+        device_id = td.create_device(client_id, "test_UPS_Monitor", "ups.device")
+        params = {"device" : DEVICE_NAME, "timer_poll" : TIMER_POLL}
         print (u"configure_global_parameters : {0}".format(params))
         td.configure_global_parameters(params)
     except:
@@ -150,18 +133,18 @@ if __name__ == "__main__":
     ### prepare and run the test suite
     suite = unittest.TestSuite()
     # check domogik is running, configure the plugin
-    suite.addTest(IRTransTestCase("test_0001_domogik_is_running", xpl_plugin, name, cfg))
-    suite.addTest(IRTransTestCase("test_0010_configure_the_plugin", xpl_plugin, name, cfg))
+    suite.addTest(NUTServeTestCase("test_0001_domogik_is_running", xpl_plugin, name, cfg))
+    suite.addTest(NUTServeTestCase("test_0010_configure_the_plugin", xpl_plugin, name, cfg))
 
     # start the plugin
-    suite.addTest(IRTransTestCase("test_0050_start_the_plugin", xpl_plugin, name, cfg))
+    suite.addTest(NUTServeTestCase("test_0050_start_the_plugin", xpl_plugin, name, cfg))
 
     # do the specific plugin tests
-    suite.addTest(IRTransTestCase("test_0110_send_code_standard", xpl_plugin, name, cfg))
+    suite.addTest(NUTServeTestCase("test_0110_send_test_battery", xpl_plugin, name, cfg))
 
    # do some tests comon to all the plugins
-    suite.addTest(IRTransTestCase("test_9900_hbeat", xpl_plugin, name, cfg))
-    suite.addTest(IRTransTestCase("test_9990_stop_the_plugin", xpl_plugin, name, cfg))
+    suite.addTest(NUTServeTestCase("test_9900_hbeat", xpl_plugin, name, cfg))
+    suite.addTest(NUTServeTestCase("test_9990_stop_the_plugin", xpl_plugin, name, cfg))
     unittest.TextTestRunner().run(suite)
 
     # quit

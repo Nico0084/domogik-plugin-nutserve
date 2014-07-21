@@ -125,7 +125,7 @@ class NUTManager(XplPlugin):
         print message
     
     def handle_xpl_cmd(self,  message):
-        """ Process xpl schema irtrans.basic
+        """ Process xpl schema ups.basic
         """
         self.log.debug("xpl-cmds listener received message:{0}".format(message))
         device_name = message.data['device']

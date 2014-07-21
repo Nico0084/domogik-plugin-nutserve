@@ -366,4 +366,4 @@ class UPSClient :
         '''
         if xPLmessage['command'] == 'send' :
             self.sendCmd(xPLmessage['code'])
-        else : self._log.debug(u"UPS Client {0}, recieved unknows command {1}".format(getIRTransId(self._device), xPLmessage['command']))
+        else : self._log.debug(u"UPS Client {0}, recieved unknows command {1}".format(getUPSId(self._device), xPLmessage['command']))

@@ -132,7 +132,7 @@ class UpsManager :
         retval =[]
         findId = ""
         self._xplPlugin.log.debug (u"getIdsClient check for device : {0}".format(idToCheck))
-        if isinstance(idToCheck,  IRTransClient) :
+        if isinstance(idToCheck,  UPSClient) :
             for id in self.upsClients.keys() :
                 if self.upsClients[id] == idToCheck :
                     retval = [id]

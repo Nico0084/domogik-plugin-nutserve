@@ -9,13 +9,13 @@ import sys
 if __name__ == "__main__":
 
     # set up the plugin name
-    name = "nutserve"
+    plugin = "nutserve"
 
     # load the test devices class
     td = TestDevice()
 
     # delete existing devices for this plugin on this host
-    client_id = "{0}-{1}.{2}".format("plugin", name, get_sanitized_hostname())
+    client_id = "{0}-{1}.{2}".format("plugin", plugin, get_sanitized_hostname())
     try:
         td.del_devices_by_client(client_id)
     except:

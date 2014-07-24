@@ -22,8 +22,8 @@ def create_device():
     params["name"] = "test_UPS_Monitor"
     params["reference"] = "NUT Sockect client"
     params["description"] = "Monitor UPS"
-    for idx, val in enumerate(params['no-xpl']):
-        if params['no-xpl'][idx]['key'] == 'timer_poll' :  params['no-xpl'][idx]['value'] = TIMER_POLL
+    for idx, val in enumerate(params['global']):
+        if params['global'][idx]['key'] == 'timer_poll' :  params['global'][idx]['value'] = TIMER_POLL
 
     for idx, val in enumerate(params['xpl']):
         params['xpl'][idx]['value'] = DEVICE_NAME

@@ -1,8 +1,10 @@
-.. _index:
+﻿.. _toc:
 
 ================
 Table of content
 ================
+.. toctree::
 
-* :doc:`Plugin documentation </nutserve>`
-* :doc:`Development informations</dev>`
+    /nutserve
+    /dev
+    /changelog

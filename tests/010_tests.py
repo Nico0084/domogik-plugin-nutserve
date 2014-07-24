@@ -122,10 +122,21 @@ if __name__ == "__main__":
 
     # create a test device
     try:
-        device_id = td.create_device(client_id, "test_UPS_Monitor", "ups.device")
-        params = {"device" : DEVICE_NAME, "timer_poll" : TIMER_POLL}
-        print (u"configure_global_parameters : {0}".format(params))
-        td.configure_global_parameters(params)
+        params = td.get_params(client_id, "ups.device")
+            # fill in the params
+        params["device_type"] = "ups.device"
+        params["name"] = "test_UPS_Monitor"
+        params["reference"] = "NUT Sockect client"
+        params["description"] = "Monitor UPS"
+        for idx, val in enumerate(params['global']):
+            if params['global'][idx]['key'] == 'timer_poll' :  params['global'][idx]['value'] = TIMER_POLL
+    
+        for idx, val in enumerate(params['xpl']):
+            params['xpl'][idx]['value'] = DEVICE_NAME
+    
+        # go and create
+        td.create_device(params)
+        print "Device UPS {0} configured".format(DEVICE_NAME) 
     except:
         print(u"Error while creating the test devices : {0}".format(traceback.format_exc()))
         sys.exit(1)

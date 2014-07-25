@@ -32,7 +32,10 @@ class UpsManager :
         self._login = str(login) if login else None
         self._pwd = str(pwd) if pwd else None
         self.nut = None
-        self.connectNUTServer()
+        try :
+            self.connectNUTServer()
+        except :
+            pass
         print "---- NUT UPS list ----\n",  self.nut.getUPSList()
         self._xplPlugin.log.info(u"Manager UPS Clients is ready.")
         

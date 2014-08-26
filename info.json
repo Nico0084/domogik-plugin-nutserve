@@ -97,6 +97,7 @@
             "incremental": false,
             "data_type" : "DT_UPSState",
             "conversion" : "",
+            "timeout": 0,
             "history": {
                     "store": true,
                     "duplicate": false,
@@ -110,6 +111,7 @@
             "incremental": false,
             "data_type" : "DT_UPSEvent",
             "conversion" : "",
+            "timeout": 0,
             "history": {
                     "store": true,
                     "duplicate": false,
@@ -123,6 +125,7 @@
             "incremental": false,
             "data_type" : "DT_Volt",
             "conversion" : "",
+            "timeout": 0,
             "history": {
                     "store": true,
                     "duplicate": false,
@@ -136,6 +139,7 @@
             "incremental": false,
             "data_type" : "DT_Volt",
             "conversion" : "",
+            "timeout": 0,
             "history": {
                     "store": true,
                     "duplicate": false,
@@ -149,6 +153,7 @@
             "incremental": false,
             "data_type" : "DT_Volt",
             "conversion" : "",
+            "timeout": 0,
             "history": {
                     "store": true,
                     "duplicate": false,
@@ -162,6 +167,7 @@
             "incremental": false,
             "data_type" : "DT_Scaling",
             "conversion" : "",
+            "timeout": 0,
             "history": {
                     "store": true,
                     "duplicate": false,
@@ -175,6 +181,7 @@
             "incremental": false,
             "data_type" : "DT_String",
             "conversion" : "",
+            "timeout": 0,
             "history": {
                     "store": false,
                     "duplicate": false,

@@ -34,9 +34,9 @@ class UpsManager :
         self.nut = None
         try :
             self.connectNUTServer()
+            print "---- NUT UPS list ----\n",  self.nut.getUPSList()
         except :
             pass
-        print "---- NUT UPS list ----\n",  self.nut.getUPSList()
         self._xplPlugin.log.info(u"Manager UPS Clients is ready.")
         
     def _del__(self):

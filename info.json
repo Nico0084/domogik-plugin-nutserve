@@ -313,10 +313,10 @@
         "tags" : ["NUT Client", "UPS Monitor"],
         "dependencies" : [],
         "description" : "Monitor UPS (Uninterruptible Power Supplies) through NUT lib",
-        "domogik_min_version" : "0.4.0",
+        "domogik_min_version" : "0.4.1",
         "name" : "nutserver",
          "type" : "plugin",
-        "version" : "0.1a0"
+        "version" : "0.1a1"
     },
     "json_version" : 2
 }

@@ -12,7 +12,7 @@ class NUTSocketClient(asyncore.dispatcher):
     def __init__(self, host, port, login = None, pwd = None,  callback = None,  log = None):
         asyncore.dispatcher.__init__(self)
         self.host = host
-        self.port = int(port)
+        self.port = int(float(port))
         self._cb = callback
         self._sync = False
         self.buffer = ""

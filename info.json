@@ -7,19 +7,19 @@
         }
     ],
     "configuration" : [{
-            "default": "localhost", 
-            "description": "Define host NUT server.", 
-            "key": "host", 
+            "default": "localhost",
+            "description": "Define host NUT server.",
+            "key": "host",
             "name": "Ip nut server",
             "required": "yes",
             "type": "ipv4"
         },
         {
-            "default": "3493", 
-            "description": "NUT server port number", 
-            "key": "port", 
+            "default": "3493",
+            "description": "NUT server port number",
+            "key": "port",
             "name": "Port nut server",
-            "required": "yes", 
+            "required": "yes",
             "type": "integer"
         },
         {
@@ -27,7 +27,7 @@
             "description" : "NUT user login.",
             "key" : "login",
             "name": "Login",
-            "required": "no", 
+            "required": "no",
             "type" : "string"
         },
         {
@@ -35,7 +35,7 @@
             "description" : "NUT user password.",
             "key" : "pwd",
             "name": "Password",
-            "required": "no", 
+            "required": "no",
             "type" : "password"
         }
     ],
@@ -316,7 +316,7 @@
         "domogik_min_version" : "0.4.1",
         "name" : "nutserver",
          "type" : "plugin",
-        "version" : "0.1a1"
+        "version" : "0.1b1"
     },
     "json_version" : 2
 }

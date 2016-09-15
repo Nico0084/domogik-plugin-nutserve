@@ -39,6 +39,8 @@
             "type" : "password"
         }
     ],
+    "xpl_commands" : {},
+    "xpl_stats" : {},
     "commands" : {
         "test_battery_start" : {
             "name" : "Start a battery test",
@@ -48,8 +50,7 @@
                     "data_type" : "DT_String",
                     "conversion" : ""
                 }
-            ],
-            "xpl_command" : "xPL_test_battery_start"
+            ]
         },
         "test_battery_start_deep" : {
             "name" : "Start a deep battery test",
@@ -59,36 +60,7 @@
                     "data_type" : "DT_String",
                     "conversion" : ""
                 }
-            ],
-            "xpl_command" : "xPL_test_battery_start_deep"
-        }
-    },
-    "xpl_commands" : {
-        "xPL_test_battery_start" : {
-            "name" : "Start a battery test",
-            "schema" : "ups.basic",
-            "xplstat_name" : "xPL_ack-command",
-            "parameters" : {
-                "static" : [{
-                        "key" : "command",
-                        "value" : "test-battery-start"
-                    }
-                ],
-                "device" : []
-            }
-        },
-        "xPL_test_battery_start_deep" : {
-            "name" : "Start a deep battery test",
-            "schema" : "ups.basic",
-            "xplstat_name" : "xPL_ack-command",
-            "parameters" : {
-                "static" : [{
-                        "key" : "command",
-                        "value" : "test-battery-start-deep"
-                    }
-                ],
-                "device" : []
-            }
+            ]
         }
     },
     "sensors" : {
@@ -191,100 +163,6 @@
                 }
         }
     },
-    "xpl_stats" : {
-        "xPL_UPS-Status" : {
-            "name" : "UPS Status",
-            "schema" : "ups.basic",
-            "parameters" : {
-                "static" : [	],
-                "device" : [],
-                "dynamic" : [{
-                        "key" : "status",
-                        "ignore_values" : "",
-                        "sensor" : "ups_status"
-                    },{
-                        "key" : "event",
-                        "ignore_values" : "",
-                        "sensor" : "ups_event"
-                    }
-                ]
-            }
-        },
-         "xPL_input-voltage" : {
-            "name" : "UPS input voltage",
-            "schema" : "sensor.basic",
-            "parameters" : {
-                "static" : [],
-                "device" : [],
-                "dynamic" : [{
-                        "key" : "input-voltage",
-                        "ignore_values" : "",
-                        "sensor" : "input_voltage"
-                    }
-                ]
-            }
-        },
-        "xPL_output-voltage" : {
-            "name" : "UPS outpout voltage",
-            "schema" : "sensor.basic",
-            "parameters" : {
-                "static" : [],
-                "device" : [],
-                "dynamic" : [{
-                        "key" : "output-voltage",
-                        "ignore_values" : "",
-                        "sensor" : "output_voltage"
-                    }
-                ]
-            }
-        },
-        "xPL_battery-voltage" : {
-            "name" : "UPS battery voltage",
-            "schema" : "sensor.basic",
-            "parameters" : {
-                "static" : [],
-                "device" : [],
-                "dynamic" : [{
-                        "key" : "battery-voltage",
-                        "ignore_values" : "",
-                        "sensor" : "battery_voltage"
-                    }
-                ]
-            }
-        },
-        "xPL_battery-charge" : {
-            "name" : "UPS battery charge",
-            "schema" : "sensor.basic",
-            "parameters" : {
-                "static" : [],
-                "device" : [],
-                "dynamic" : [{
-                        "key" : "battery-charge",
-                        "ignore_values" : "",
-                        "sensor" : "battery_charge"
-                    }
-                ]
-            }
-        },
-         "xPL_ack-command" : {
-            "name" : "received ups command result",
-            "schema" : "sensor.basic",
-            "parameters" : {
-                "static" : [{
-                        "key" : "command",
-                        "value" : "ack_command"
-                    }
-				],
-                "device" : [],
-                "dynamic" : [{
-                        "key" : "result",
-                        "ignore_values" : "",
-                        "sensor" : "ack_command"
-                    }
-                ]
-            }
-        }
-    },
     "device_types" : {
         "ups.device" : {
             "description" : "UPS device",
@@ -294,14 +172,20 @@
             "sensors" : ["ups_status", "ups_event", "input_voltage", "output_voltage", "battery_voltage", "battery_charge", "ack_command"],
             "parameters" : [{
                     "key" : "device",
-					"xpl": true,
+					"xpl": false,
                     "description" : "UPS identification (nut ups name)",
                     "type" : "string"
                 },
                 {
+                    "key" : "timer_status",
+					"xpl": false,
+                    "description" : "Timer (seconds) for poll UPS status (default NUT Timer, 0 to desactivat)",
+                    "type" : "integer"
+                },
+                {
                     "key" : "timer_poll",
 					"xpl": false,
-                    "description" : "Timer (seconds) for poll UPS status (default NUT Timer, 0 for desactivat)",
+                    "description" : "Timer (seconds) for poll UPS variables (0 to desactivat)",
                     "type" : "integer"
                 }
             ]
@@ -313,10 +197,10 @@
         "tags" : ["NUT Client", "UPS Monitor"],
         "dependencies" : [],
         "description" : "Monitor UPS (Uninterruptible Power Supplies) through NUT lib",
-        "domogik_min_version" : "0.4.1",
+        "domogik_min_version" : "0.5.0",
         "name" : "nutserver",
          "type" : "plugin",
-        "version" : "0.1b1"
+        "version" : "0.2.0"
     },
     "json_version" : 2
 }

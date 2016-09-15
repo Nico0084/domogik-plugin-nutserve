@@ -10,8 +10,8 @@ mysql:
   username: travis
   encoding: utf8
 env:
-  DMG_BRANCH=master
-  DMG_PLUGIN=notify
+  DMG_BRANCH=develop
+  DMG_PLUGIN=nutserve
 install:
   - cd ~
   - git clone https://github.com/domogik/domogik.git

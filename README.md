@@ -2,7 +2,7 @@ domogik-plugin-nutserve
 =========================
 
 A Domogik (www.domogik.org) plugin monitor UPS (Uninterruptible Power Supplies) through communicat with [NUT project server](http://www.networkupstools.org/).
-Create a socket connection with NUT to get UPS informations and format them to xPL format according to [xPL_project](http://xplproject.org.uk/wiki/index.php?title=Schema_-_UPS.BASIC>) specifications.
+Create a socket connection with NUT to get UPS informations and report them to domogik sensors.
 
 You must configure as your needs the  NUT library and give parameters connection at plugin..
 UPS Status, on mains (line), on battery, connected, lost connection,.... are send to domogik device.

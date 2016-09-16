@@ -11,10 +11,9 @@ Last change
 ===========
 New instructions to apply changes from immediatly previous version.
 
-- 0.1a0 : (28-05-2014) First published version
-    - Target :
-    - Change log :
-        - Update doc
+- 0.3.0 : (16-09-2016) First published version for domogik 0.5
+    - Version without xpl, work with 0MQ
+    - Update device_type, recreate domogik device with them.
 
 - `Previous change <changelog.html>`_
 
@@ -22,9 +21,9 @@ Purpose
 =======
 This Domogik plugin monitor UPS (Uninterruptible Power Supplies) through communicat with `NUT project server <http://www.networkupstools.org/>`_.
 
-Create a socket connection with NUT to get UPS informations and format them to xPL format according to `xPL_project <http://xplproject.org.uk/wiki/index.php?title=Schema_-_UPS.BASIC>`_ specifications.
+Create a socket connection with NUT to get UPS informations and report them to domogik sensors.
 
-You must configure as your needs the  NUT library and give parameters connection at plugin.
+You must configure as your needs the NUT library and give parameters connection at plugin.
 
 UPS Status, on mains (on line), on battery, connected, lost connection,.... are send to domogik device.
 
@@ -47,7 +46,7 @@ In Domogik administration section, go to client plugin-nutserve details page.
 +----------------+---------------+--------------------------------------------------------------------------------------+
 | Login          |               | Set NUT user login.                                                                  |
 +----------------+---------------+--------------------------------------------------------------------------------------+
-| Password       |               | Set UT user password.                                                                |
+| Password       |               | Set NUT user password.                                                               |
 +----------------+---------------+--------------------------------------------------------------------------------------+
 
 Creating devices for UPS Client
@@ -59,17 +58,22 @@ Chose one way creation by product or instance type.
 Instance-type : ups.device
 **************************
 
-+-------------------+-------------------+------------------------------------------------------------------------------+
-| Key               | Example           | Description                                                                  |
-+===================+===================+==============================================================================+
-| Device            | My_UPS            | The display name for this device.                                            |
-+-------------------+-------------------+------------------------------------------------------------------------------+
-| Description       | What you want     | A short descriptionn for this device.                                        |
-+-------------------+-------------------+------------------------------------------------------------------------------+
-| Global device     | My_UPS            | Same name of UPS name in ups.conf file.                                      |
-+-------------------+-------------------+------------------------------------------------------------------------------+
-| Global timer_poll | 3                 | Timer (seconds) for poll UPS status                                          |
-|                   |                   |   - Default "0": get NUT Timer, desactivat if not find.                      |
-|                   |                   |   - 31536000 for desactivat polling.                                         |
-+-------------------+-------------------+------------------------------------------------------------------------------+
++----------------+-------------------+------------------------------------------------------------------------------+
+| Key            | Example           | Description                                                                  |
++================+===================+==============================================================================+
+| Device         | My_UPS            | The display name for this device.                                            |
++----------------+-------------------+------------------------------------------------------------------------------+
+| Description    | What you want     | A short descriptionn for this device.                                        |
++----------------+-------------------+------------------------------------------------------------------------------+
+| Global         |                   | Same name of UPS name in ups.conf file.                                      |
+|   device       | My_UPS            |                                                                              |
++----------------+-------------------+------------------------------------------------------------------------------+
+| Global         |                   | Timer (seconds) for poll UPS status                                          |
+|   timer_status | 60                |   - "0": desactivat polling.                                                 |
+|                |                   | Status is sended to domogik only if changed.                                 |
++------------- --+-------------------+------------------------------------------------------------------------------+
+| Global         |                   | Timer (seconds) for poll UPS values                                          |
+|   timer_poll   | 3                 |   - "0": desactivat polling.                                                 |
+|                |                   | Values are sended to domogik only if changed.                                |
++----------------+-------------------+------------------------------------------------------------------------------+
 

@@ -2,8 +2,19 @@
 Changelog
 =========
 
+0.2.0
+-----
+
+* domogik 0.5 upgrade
+* Version without xpl, work with 0MQ
+* Update device_type, recreate domogik device with them.
+* Add timer pool control as device parameter.
+* Live domogik device create/update, no need to restrat plugin
+* Update user and develop doc.
+
+
 0.1a
-====
+----
 
 * Plugin creation
 

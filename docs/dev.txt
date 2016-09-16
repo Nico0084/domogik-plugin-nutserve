@@ -10,51 +10,7 @@ The plugin just use the `NUT server functions <http://www.networkupstools.org/do
 xPL messages
 ============
 
-xPL messages are according to `xPL Project UPS specification <http://xplproject.org.uk/wiki/index.php?title=Schema_-_UPS.BASIC>`_
-
-xpl-stat
---------
-
-n/a
-
-xpl-trig
---------
-
-The **ups.basic** message is used
-*********************************
-::
-
-    xpl-trig
-    {
-    ...
-    }
-    ups.basic
-    {
-    device=<ups name declared on domogik device created>
-    status=<one of these values : mains, battery, unknown>
-    event=<last event : onmains, onbattery, battlow,......>
-    }
-
-The **sensor.basic** message is used for additionnal data
-*********************************************************
-::
-
-    xpl-trig
-    {
-    ...
-    }
-    sensor.basic
-    {
-    device=<ups name declared on domogik device created>
-    input-voltage=<value>
-    output-voltage=<value>
-    battery-voltage=<value>
-    battery-charge==<value>
-    }
-
-xpl-cmnd
---------
-n/a
+No xPL message handle, use only 0MQ
 
 NUT driver compatibility
 ========================
@@ -126,8 +82,8 @@ Getting UPS variables available
         ups.delay.start: 180
         ups.status: OL
 
-- Or using plugin tools ``lib/nutdevices.py`` :
-    Simple set your own parameters on __main__ section of ``lib/nutdevices.py`` file. ::
+- Or using plugin tools ``lib/nutsockclient.py`` :
+    Simple set your own parameters on __main__ section of ``lib/nutsockclient.py`` file. ::
 
         if __name__ == "__main__":
               # Set  upsaddr,  upsport and upsname depending on your config
@@ -135,7 +91,7 @@ Getting UPS variables available
             upsport = <UPS server port (generaly= 3493)>
             upsname = <UPS name>
 
-    Run python file ``lib/nutdevices.py`` and you get appropriate informations. ::
+    Run python file ``lib/nutsockclient.py` and you get appropriate informations. ::
 
         $ python nutsockclient.py
          +++ Internal NUTSocketClient created +++
@@ -193,6 +149,10 @@ Getting UPS variables available
 
 Creating new Driver device class
 ********************************
+
+- File lib/nutdevices.py contains a DeviceBase python class who handle basic methodes. You create a new class inherit this base class and overwriting some methodes to get acces of this new service or hardware. 
+You can insert your new class in the file or create a new with import DeviceBase :
+
 ::
 
     class My_New_Device(DeviceBase):  # simply new class declaration
@@ -208,19 +168,19 @@ DATA_TYPE_RETURN is a dict type with keys. ::
     DATA_TYPE_RETURN :
     {
         'Modify' : True/False, # if the value change you must set to True.
-        'xPLData' : {  # Here all value who must transmit to xPL message.
+        'sensorsData' : {  # Here all value who must transmit to domogik.
             'status' : <'mains' or 'battery', or 'unknown'>
-            'event' : <All event define in XPL_Events>
+            'event' : <All event define in UPS_Events>
         }
     }
 
-Use ``self.handleXplEvent`` to set XPL_Events status at True/False.
+Use ``self.handleUPS_Events`` to set UPS_Events status at True/False.
     This method :
         - Return a tuple with a boolean and a string for event key of DATA_TYPE_RETURN.
         
-        - Manage an XPL_Event retention for some XPL Events values.
+        - Manage an UPS_Event retention for some UPS Events values.
     
-        - Ret others depending XPL_Events status of new event, Ex:
+        - Ret others depending UPS_Events status of new event, Ex:
 
             if input_voltage_low' set to True
 
@@ -232,13 +192,13 @@ Use ``self.handleXplEvent`` to set XPL_Events status at True/False.
     
         ....
         retval = self.checkStatus()
-        retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events(< an XPL_Events>, True/False)
+        retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events(< an UPS_Events>, True/False)
 
-Dependency XPL_Events status
+Dependency UPS_Events status
 ****************************
 
-XPL_Events are groups in dependencies status, if an item change others items must change.
-Developer has no need to handle dependencies, ``self.handleXplEvent`` method handle them.
+UPS_Events are groups in dependencies status, if an item change others items must change.
+Developer has no need to handle dependencies, ``self.handleUPS_Events`` method handle them.
 It's just for information.
 
 - On line status:
@@ -309,11 +269,9 @@ Overwrited methods
 - checkAll:
     Check All UPS stuff and return they values in DATA_TYPE_RETURN list.
 
-    This method work with DeviceBase class, overwrite it only if new check method is necessary. Otherwise overwrite existing methods.
+    This method work with DeviceBase class, overwrite it only if new check method is necessary.
 
     You can overwrite this method but it is essential to call source method at first.
-
-    Overwrite could be necessary only for new check, otherwise overwrite existing methods.
 
     Overwriting structure: ::
 
@@ -343,14 +301,14 @@ Overwrited methods
                 retVal = self.checkStatus()
                   # Test voltage status
                 if self._vars['input.voltage'] >= high :
-                      # Set 'Modify' and XPL_Events DATA_TYPE_RETURN format
-                    retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_high',  True)
+                      # Set 'Modify' and UPS_Events DATA_TYPE_RETURN format
+                    retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('input_voltage_high',  True)
                 elif self._vars['input.voltage'] <= low :
-                        # Set 'Modify' and XPL_Events DATA_TYPE_RETURN format
-                    retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_low',  True)
+                        # Set 'Modify' and UPS_Events DATA_TYPE_RETURN format
+                    retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('input_voltage_low',  True)
                 else :
-                        # Set 'Modify' and XPL_Events DATA_TYPE_RETURN format
-                    retVal['modify'], retVal['xPLData']['event'] = self.handleXPL_Events('input_voltage_ok',  True)
+                        # Set 'Modify' and UPS_Events DATA_TYPE_RETURN format
+                    retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('input_voltage_ok',  True)
                 return retVal # Return DATA_TYPE_RETURN format
             return None # Return None to report not handling UPS event
 

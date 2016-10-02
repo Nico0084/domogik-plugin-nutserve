@@ -126,7 +126,7 @@ class DeviceBase():
             retVal = self.checkStatus(self._vars)
             retVal['modify'] = True
             if state : retVal['sensorsData']['event'] = self.handleUPS_Events('comms_ok',  True)[1]
-            else : retVal['sensorsData'] = {'status': 'unknown', 'event': self.handleUPS_Events('comms_lost',  True)[1]}
+            else : retVal['sensorsData'] = {'status': 'LB', 'event': self.handleUPS_Events('comms_lost',  True)[1]}
             return retVal
         return {'modify' : False}
 
@@ -142,22 +142,22 @@ class DeviceBase():
                 self.update(data)
                 retVal['modify'] = True
             if status == 'OL' :
-                retVal['sensorsData'] = {'status': 'mains', 'event': self.handleUPS_Events('onmains',  True)[1]}
+                retVal['sensorsData'] = {'status': status, 'event': self.handleUPS_Events('onmains',  True)[1]}
 #                self.handleUPS_Events('onbattery',  False)
             elif  status == 'OB' :
-                retVal['sensorsData'] = {'status': 'battery', 'event': self.handleUPS_Events('onbattery',  True)[1]}
+                retVal['sensorsData'] = {'status': status, 'event': self.handleUPS_Events('onbattery',  True)[1]}
 #                self.handleUPS_Events('onmains',  False)
             elif status == 'LB' :
-                retVal['sensorsData'] = {'status': 'unknown', 'event' : ''}
+                retVal['sensorsData'] = {'status': status, 'event' : ''}
                 retVal['modify'], retVal['sensorsData']['event'] =  self.handleUPS_Events('battlow',  True)
                 self.handleUPS_Events('onmains',  False)
                 self.handleUPS_Events('onbattery',  False)
             else :
-                retVal['sensorsData'] = {'status': 'unknown', 'event': 'unknown' if retVal['modify'] else ''}
+                retVal['sensorsData'] = {'status': 'LB', 'event': 'unknown' if retVal['modify'] else ''}
                 self.handleUPS_Events('onmains',  False)
                 self.handleUPS_Events('onbattery',  False)
             return retVal
-        retVal['sensorsData'] = {'status': 'unknown', 'event': 'unknown'}
+        retVal['sensorsData'] = {'status': 'LB', 'event': 'unknown'}
         return retVal
 
     def checkBattery(self):

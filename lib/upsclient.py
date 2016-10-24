@@ -166,7 +166,7 @@ class UPSClient :
         sensors = self.getDmgSensors()
         for sensor in sensors:
             if sensors[sensor]['data_type'] == 'DT_UPSState':
-                self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], 'unknown')
+                self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], 'LB')
             elif sensors[sensor]['data_type'] == 'DT_UPSEvent':
                 self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], 'comms_lost')
 
@@ -213,11 +213,11 @@ class UPSClient :
         self._sensorsValue = {'input.voltage' : 0, 'output.voltage' :0, 'battery.voltage' :0, 'battery.charge': 0}
 
     def _updateSensorValue(self, var, value):
-        if var in ["input.voltage",  "output.voltage"]: round = 0.2
-        elif var == "battery.voltage": round = 0.1
-        elif var == "battery.charge": round = 2
+        if var in ["input.voltage",  "output.voltage"]: threshold = 0.8
+        elif var == "battery.voltage": threshold = 0.5
+        elif var == "battery.charge": threshold = 2
         else: return False
-        if (value <= self._sensorsValue[var] - round) or (value >= self._sensorsValue[var] + round) :
+        if (value <= self._sensorsValue[var] - threshold) or (value >= self._sensorsValue[var] + threshold) :
             self._sensorsValue[var] = value
             return True
         return False

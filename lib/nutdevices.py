@@ -112,6 +112,7 @@ class DeviceBase():
         """
         data = []
         data.append(self.checkStatus())
+        data.append(self.checkBattery())
         data.append(self.checkInputVoltage())
         data.append(self.checkInputFreq())
         data.append(self.checkOutputVoltage())
@@ -130,7 +131,7 @@ class DeviceBase():
             return retVal
         return {'modify' : False}
 
-    def checkStatus(self,  data = None):
+    def checkStatus(self, data = None):
         """Return UPS status in key 'sensorsData'."""
         if not data : data = self._vars
         retVal = {'modify' : False}
@@ -228,8 +229,8 @@ class Blazer_USB(DeviceBase):
 
     def checkInputVoltage(self):
         if self._vars.has_key('input.voltage.nominal') :
-            high = self._vars['input.voltage.nominal'] * 1.06
-            low = self._vars['input.voltage.nominal'] * 0.94
+            high = self._vars['input.voltage.nominal'] * 1.0653  # 230 => 245 volt
+            low = self._vars['input.voltage.nominal'] * 0.95 # 230 => 218.5 volt
         else : return None
         if self._vars.has_key('input.voltage') :
             retVal = self.checkStatus()
@@ -244,8 +245,8 @@ class Blazer_USB(DeviceBase):
 
     def checkInputFreq(self):
         if self._vars.has_key('input.frequency.nominal') and self._vars.has_key('input.frequency'):
-            high = self._vars['input.frequency.nominal'] * 1.02
-            low = self._vars['input.frequency.nominal'] * 0.98
+            high = self._vars['input.frequency.nominal'] * 1.02 # 50 => 51 Hz
+            low = self._vars['input.frequency.nominal'] * 0.98 # 50 => 49 Hz
             retVal = self.checkStatus()
             if (self._vars['input.frequency'] >= high) or (self._vars['input.frequency'] <= low):
                retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('input_freq_error',  True)
@@ -256,8 +257,8 @@ class Blazer_USB(DeviceBase):
 
     def checkOutputVoltage(self):
         if self._vars.has_key('input.voltage.nominal') :
-            high = self._vars['input.voltage.nominal'] * 1.06
-            low = self._vars['input.voltage.nominal'] * 0.94
+            high = self._vars['input.voltage.nominal'] * 1.0653  # 230 => 245 volt
+            low = self._vars['input.voltage.nominal'] * 0.95 # 230 => 218.5 volt
         else : return None
         if  self._vars.has_key('output.voltage') :
             retVal = self.checkStatus()
@@ -272,8 +273,8 @@ class Blazer_USB(DeviceBase):
 
     def checkOutput(self):
         if self._vars.has_key('input.current.nominal') and self._vars.has_key('input.current'):
-            high = self._vars['input.current.nominal'] * 1.05
-            low = self._vars['input.current.nominal'] * 0.95
+            high = self._vars['input.current.nominal'] * 1.05 # 2 => 2.1 A
+            low = self._vars['input.current.nominal'] * 0.95 # 2 => 1.9 A
             retVal = self.checkStatus()
             if (self._vars['input.current'] >= high) or (self._vars['input.current'] <= low):
                 retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('output_overload',  True)

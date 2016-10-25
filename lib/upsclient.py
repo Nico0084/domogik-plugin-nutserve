@@ -82,14 +82,13 @@ def getUPSId(device):
     else : return None
 
 def checkIfConfigured(deviceType,  device):
-#    print(device)
     if deviceType == 'ups.device' :
         if device["name"] : return True # and \
 #           device["parameters"]["device"]["value"] : return True
         else : return False
     return False
 
-class TimerClient:
+class TimerClient(object):
     def __init__(self, tempo, callback, args= [], kwargs={}):
         self._callback = callback
         self._args = args
@@ -108,7 +107,7 @@ class TimerClient:
     def stop(self):
         self._timer.cancel()
 
-class UPSClient :
+class UPSClient(object) :
     """Basic class for NUT server link."""
 
     def __init__ (self, manager, dmgDevice, log) :
@@ -124,7 +123,7 @@ class UPSClient :
         self._typeVars = {}
         self._failedStatus = 0
         self._lock = threading.Lock()
-        self._nutDevice = createDevice(self.getUPSVars())
+        self._nutDevice = createDevice(self.getUPSVars(), log)
         self.__initSensorsValue()
         self._rwVars = self.getRWVars()
         self._upsCmds = self.getUPSCommands()
@@ -134,7 +133,7 @@ class UPSClient :
             timer = self._dmgDevice['parameters']['timer_status']['value']
         else :
             timer = self._nutDevice.getPollInterval()
-        print(u'Parameter timer poll status: {0}'.format(timer))
+        self._log.debug(u'Parameter timer poll status: {0}'.format(timer))
         if timer !=0 :
             self._timerPollSt = TimerClient(timer, self.getUPSStatus)
             self._timerPollSt.start()
@@ -155,7 +154,7 @@ class UPSClient :
 
     def __del__(self):
         """Close updater timers."""
-        print "Try __del__ client"
+        self._log.debug(u"Try __del__ client")
         self.close()
 
     def close(self):
@@ -224,9 +223,7 @@ class UPSClient :
 
     def getUPSVar(self, var):
         retval = self._manager.nut.getUPSVar(self.upsName,  var)
-#        print(u'   getUPSVar : {0}'.format(retval))
         if retval['error'] == '':
-#            self.(True)
             if retval.has_key('var') and retval['var'] == var :
                 return self.parseUPSVar(var,  retval['value'])
             else : return ''
@@ -238,7 +235,6 @@ class UPSClient :
 
     def getUPSVars(self):
         retval = self._manager.nut.getUPSVars(self.upsName)
-#        print(u'   getUPSVars : {0}'.format(retval))
         if retval['error'] == '':
             if retval['cmd'] == 'LIST VAR':
                 self.status = retval['data']['ups.status']
@@ -247,7 +243,7 @@ class UPSClient :
                 for var in retval['data']: retval['data'][var] = self.parseUPSVar(var,  retval['data'][var])
                 return retval['data']
             else :
-                print(u'     - getUPSVars No good result Abort by return {}')
+                self._log.warning(u"getUPSVars bad result : {0}".format(retval))
                 return {}
         else :
             self.status = 'unknown'
@@ -257,7 +253,7 @@ class UPSClient :
 
     def getRWVars(self):
         retval = self._manager.nut.getUPSRWVars(str(self.upsName))
-        print(u'   getRWVars : {0}'.format(retval))
+        self._log.debug(u'getRWVars : {0}'.format(retval))
         if retval['error'] == '':
             self.updatelNutConnection(True)
             return retval['data']
@@ -268,7 +264,7 @@ class UPSClient :
 
     def getUPSCommands(self):
         retval = self._manager.nut.getUPSCommands(self.upsName)
-        print(u'   getUPSCommands : {0}'.format(retval))
+        self._log.debug(u'getUPSCommands : {0}'.format(retval))
         if retval['error'] == '':
             self.updatelNutConnection(True)
             return retval['data']
@@ -279,7 +275,6 @@ class UPSClient :
 
     def _getTypeVar(self,  var = None):
         if var :
-#            print(u"*** Retrieve Single type var")
             type = ''
             retval = self._manager.nut.getUPSVarType(self.upsName,  var)
             if retval['error'] == '':
@@ -287,24 +282,21 @@ class UPSClient :
             else:
                 self._log.info(u"Client UPS, {0} error in type var : {1}".format(var,  retval['error']))
                 self.updatelNutConnection(False)
-#            print(var, type)
             return type
         elif self._nutDevice :
             if not self._typeVars : self._typeVars ={}
-            print(u"*** Retrieve all type vars")
             for var in self._nutDevice._vars :
                 if not self._typeVars.has_key(var) or self._typeVars[var] == '':
                     retval = self._manager.nut.getUPSVarType(self.upsName,  var)
                     if retval['error'] == '':
                         self._typeVars[var] = retval['type']
-                        print(u"--- new type {0} : {1}".format(var, self._typeVars[var]))
+                        self._log.debug(u"--- new type {0} : {1}".format(var, self._typeVars[var]))
                     else:
-                        self._log.info(u"Client UPS, {0} error in type var : {1}".format(var,  retval['error']))
+                        self._log.warning(u"Client UPS, {0} error in type var : {1}".format(var,  retval['error']))
                         self.updatelNutConnection(False)
-#            print(self._typeVars)s
             return self._typeVars
 
-    def parseUPSVar(self, var,  value):
+    def parseUPSVar(self, var, value):
         if not self._typeVars.has_key(var) :
             type = self._getTypeVar(var)
             if type !='': self._typeVars[var] = type
@@ -320,7 +312,6 @@ class UPSClient :
                 except :
                     type = 'STRING'
             if self._typeVars.has_key(var) : self._typeVars[var] = type
-#            print "++++ parse new type {0} = {1}".format(var, self._typeVars[var] )
         if type == 'STRING' : return str(value)
         elif type == 'RANGE' : return int(value)
         elif type == 'ENUM' : return str(value)
@@ -334,23 +325,29 @@ class UPSClient :
         self._lock.release()
         if status =='' :
             self._failedStatus += 1
-            print(u'++++ Get UPS Status fail : {0} time ({1})'.format(self._failedStatus,  status))
+            self._log.warning(u'Get UPS Status fail : {0} time ({1})'.format(self._failedStatus,  status))
         else :
             self._failedStatus = 0
-            print(u'++++ Get UPS Status : {0}'.format(status))
             if status != self.status :
-                self.updateUPSVars()
+                self.updateUPSVars(status)
 
-    def updateUPSVars(self):
+    def updateUPSVars(self, newStatus=''):
         """Update UPS values and send sensor to MQ."""
+        sensors = self.getDmgSensors()
+        if newStatus != '':
+            data = self._nutDevice.checkStatus({'ups.status': newStatus})
+            sId = 'ups.status'.replace('.',  '_', 4) # get sensors domogik id format
+            if data['modify'] :
+                for sensor in sensors:
+                    if sensor == sId:
+                        self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], newStatus)
         self._lock.acquire()
         upsVars = self.getUPSVars()
         if upsVars != {}:
-            print(u"***** Update All UPS Variables {0}".format(upsVars))
+#            self._log.debug(u"***** Update All UPS Variables {0}".format(upsVars))
             self._nutDevice.update(upsVars)
             data = self._nutDevice.checkAll()
-            sensors = self.getDmgSensors()
-            print(u"Sensors : {0}".format(sensors))
+#            self._log.debug(u"Sensors : {0}".format(sensors))
             for var in data :
                 if var and var['modify'] :
                     for sensor in sensors:
@@ -372,8 +369,8 @@ class UPSClient :
         self._lock.release()
 
     def handle_UPS_Msg(self, message):
-        """verifie si la valeur est à updater."""
-        print(u'*** In Client _handle_UPS_Msg : {0}'.format(message))
+        """verifie si la valeur est a updater."""
+        self._log.debug(u'In Client _handle_UPS_Msg : {0}'.format(message))
 
     def updatelNutConnection(self, state):
         if self._connected != state :

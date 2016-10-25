@@ -35,14 +35,13 @@ class UpsManager :
         self.nut = None
         try :
             self.connectNUTServer()
-            print u"---- NUT UPS list ----\n",  self.nut.getUPSList()
+            self._plugin.log.debug(u"---- NUT UPS list ----\n".format(self.nut.getUPSList()))
         except :
             pass
         self._plugin.log.info(u"Manager UPS Clients is ready.")
 
     def _del__(self):
         """Delete all UPS CLients"""
-        print u"try __del__ UPSClients"
         for id in self.upsClients : self.upsClients[id] = None
 
     def stop(self):
@@ -63,22 +62,16 @@ class UpsManager :
 
     def checkNutConnection(self):
         """Vérifie la connection au server NUT et essais de la relancer si besoin."""
-        print(u'----- check nut connection -----')
         if self.nut :
-            print(u'   - NUT object exist try "GET LIST".')
             try :
-                upsList = self.nut.getUPSList()
-                print(u'       - "GET LIST"  OK.')
+                self.nut.getUPSList()
                 return  True
             except IOError as err:
                 self.nut = None
-                print(u'       - "GET LIST"  ERR (timeout).')
-                self._plugin.log.info(u"Manager UPS, NUT connection as client fail. {0}".format(err))
+                self._plugin.log.warning(u"Manager UPS, NUT connection as client fail. {0}".format(err))
         if not self.nut :
-            print u'   - NUT object NOT exist try connectNUTServer.'
             self.connectNUTServer()
             if self.nut :
-                print(u'       - NUT object create.')
                 return True
         return False
 
@@ -208,5 +201,4 @@ class UpsManager :
 
     def sendSensorValue(self, sensor_id, dt_type, value):
         """Send value to domogik sensor """
-        print(u"+++++++++++++Send to sensor")
         self._send_sensor(sensor_id, dt_type, value)

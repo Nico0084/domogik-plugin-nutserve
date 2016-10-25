@@ -48,9 +48,9 @@ except ImportError as exc :
     logging.basicConfig(filename='/var/log/domogik/nutserve_start_error.log',level=logging.DEBUG)
     log = logging.getLogger('nutmonitor_start_error')
     err = "Error: Plugin Starting failed to import module ({})".format(exc)
-    print err
+    print(err)
     logging.error(err)
-    print log
+    print(log)
 
 class NUTManager(Plugin):
     """ Main class running at plugin start
@@ -91,7 +91,7 @@ class NUTManager(Plugin):
 
     def __del__(self):
         """Close managerClients"""
-        print "Try __del__ self.managerClients."
+        self.log.debug("Try __del__ self.managerClients.")
         self.managerClients = None
 
     def threadingRefreshDevices(self, max_attempt = 2):
@@ -151,7 +151,7 @@ class NUTManager(Plugin):
 
     def send_sensor(self, sensor_id, dt_type, value):
         """Send pub message over MQ"""
-        self.log.info(u"Sending MQ sensor id:{0}, dt type: {1}, value:{2}" .format(sensor_id, dt_type, value))
+        self.log.info(u"Sending MQ sensor id:{0}, dt type: {1}, value: {2}".format(sensor_id, dt_type, value))
         self._pub.send_event('client.sensor', {sensor_id : value})
 
 if __name__ == "__main__":

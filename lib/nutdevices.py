@@ -1,4 +1,4 @@
- # !/usr/bin/python
+# !/usr/bin/python
 #-*- coding: utf-8 -*-
 
 UPS_Events =  [{'onmains': {'keep' : False, 'description': 'The UPS has begun operating on mains power'},
@@ -23,29 +23,31 @@ UPS_Events =  [{'onmains': {'keep' : False, 'description': 'The UPS has begun op
                     {'temp_high': {'keep' : True, 'description': 'The UPS temperature is too high'},
                     'temp_ok': {'keep' : False, 'description': 'The UPS temperature has returned from an over-temperature condition'}}]
 
-def createDevice(data):
+def createDevice(data,  log=None):
     """ Create a device depending of 'driver.name' given by data dict.
         - Developer : add your python class derived from DeviceBase class."""
     if data.has_key('driver.name') :
-        if data['driver.name'] == 'blazer_usb' : return Blazer_USB(data)
-        else : return DeviceBase(data)
-    else : return DeviceBase(data)
+        if data['driver.name'] == 'blazer_usb' : return Blazer_USB(data, log)
+        else : return DeviceBase(data,  log)
+    else : return DeviceBase(data, log)
 
-class DeviceBase():
+class DeviceBase(object):
     """ Basic Class for driver functionnalities.
         - Developper : Use on inherite class to impllement new driver class
                 Overwrite  methods to handle UPS event."""
-    def __init__(self,  data):
+
+    def __init__(self,  data, log=None):
         """ Not necessary overwrited.
             @param data : dict with all NUT vars formated by type.
                 type : dict
         """
         self._connected = False
         self._vars = data
+        self.log = log
         self._UPS_Events = {}
         for events in UPS_Events :
             for event in events.keys() : self._UPS_Events[event] = False
-        print self._vars
+        self.log.debug(u"Init device with : {0}".format(self._vars))
         self.checkAll()
 
     def update(self,  data):
@@ -75,8 +77,7 @@ class DeviceBase():
                                 if event != ups_Event :
                                     self._UPS_Events[event] = False
                             break
-                    return True,  ups_Event
-                else: return True, '',
+                return True,  ups_Event
             else:
                 event = ''
                 if status :
@@ -86,7 +87,7 @@ class DeviceBase():
                             break
                 return False,  event
         else :
-            print(u"UPS key event '{0}' not exist.".format(ups_Event))
+            self.log.warning(u"UPS key event '{0}' not exist.".format(ups_Event))
             return  False, 'error : {0} not exist.'.format(ups_Event),
 
     def getPollInterval(self):
@@ -95,6 +96,11 @@ class DeviceBase():
             if self._vars.has_key('driver.parameter.pollinterval') : timer = self._vars['driver.parameter.pollinterval']
             else : timer = 5
         return timer
+
+    def getStatus(self):
+        """ Return dict data format for sensor event, include actual status with no modif."""
+        status = '' if not 'ups.status' in self._vars else self._vars['ups.status']
+        return {'modify': False, 'sensorsData': {'status': status, 'event': ''}}
 
     def checkAll(self):
         """ Check All UPS stuff and return they values.
@@ -137,6 +143,7 @@ class DeviceBase():
         retVal = {'modify' : False}
         if data.has_key('ups.status'):
             status = data['ups.status']
+            self.log.debug(u"Evaluate status {0} to old {1}".format(status, self._vars['ups.status']))
             if self._vars and self._vars.has_key('ups.status'):
                 retVal['modify'] = False if status == self._vars['ups.status'] else True
             else :
@@ -157,27 +164,30 @@ class DeviceBase():
                 retVal['sensorsData'] = {'status': 'LB', 'event': 'unknown' if retVal['modify'] else ''}
                 self.handleUPS_Events('onmains',  False)
                 self.handleUPS_Events('onbattery',  False)
+            self.log.debug(u"result : {0}".format(retVal))
             return retVal
         retVal['sensorsData'] = {'status': 'LB', 'event': 'unknown'}
         return retVal
 
     def checkBattery(self):
         """Check battery status."""
-        retVal = self.checkStatus()
-        if self._vars.has_key('ups.status'):
-            if self._vars['ups.status'] == 'LB' : return retVal
+        retVal = self.getStatus()
+#        if self._vars.has_key('ups.status'):
+#            if self._vars['ups.status'] == 'LB' : return retVal
         charge = self.getBatteryCharge()
         if charge :
-            retVal = self.checkStatus(self._vars)
+#            retVal = self.checkStatus(self._vars)
             if charge >= 100 :
                 retVal['modify'],  retVal['sensorsData']['event'] = self.handleUPS_Events('battfull', True)
             elif charge <= 20 :
                 retVal['modify'],  retVal['sensorsData']['event']  = self.handleUPS_Events('battlow', True)
             else :
                 if self._UPS_Events['battfull'] :
-                    retVal['modify'],  retVal['sensorsData']['event'] = self.handleUPS_Events('battfull', False)
+                    self.handleUPS_Events('battfull', False)
+                    retVal = None
                 if self._UPS_Events['battlow'] :
-                    retVal['modify'],  retVal['sensorsData']['event'] = self.handleUPS_Events('battlow', False)
+                    self.handleUPS_Events('battlow', False)
+                    retVal = None
             return retVal
         return None
 
@@ -233,7 +243,7 @@ class Blazer_USB(DeviceBase):
             low = self._vars['input.voltage.nominal'] * 0.95 # 230 => 218.5 volt
         else : return None
         if self._vars.has_key('input.voltage') :
-            retVal = self.checkStatus()
+            retVal = self.getStatus()
             if self._vars['input.voltage'] >= high :
                 retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('input_voltage_high',  True)
             elif self._vars['input.voltage'] <= low :
@@ -247,7 +257,7 @@ class Blazer_USB(DeviceBase):
         if self._vars.has_key('input.frequency.nominal') and self._vars.has_key('input.frequency'):
             high = self._vars['input.frequency.nominal'] * 1.02 # 50 => 51 Hz
             low = self._vars['input.frequency.nominal'] * 0.98 # 50 => 49 Hz
-            retVal = self.checkStatus()
+            retVal = self.getStatus()
             if (self._vars['input.frequency'] >= high) or (self._vars['input.frequency'] <= low):
                retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('input_freq_error',  True)
             else:
@@ -261,7 +271,7 @@ class Blazer_USB(DeviceBase):
             low = self._vars['input.voltage.nominal'] * 0.95 # 230 => 218.5 volt
         else : return None
         if  self._vars.has_key('output.voltage') :
-            retVal = self.checkStatus()
+            retVal = self.getStatus()
             if self._vars['output.voltage'] >= high :
                 retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('output_voltage_high',  True)
             elif self._vars['output.voltage'] <= low :
@@ -275,7 +285,7 @@ class Blazer_USB(DeviceBase):
         if self._vars.has_key('input.current.nominal') and self._vars.has_key('input.current'):
             high = self._vars['input.current.nominal'] * 1.05 # 2 => 2.1 A
             low = self._vars['input.current.nominal'] * 0.95 # 2 => 1.9 A
-            retVal = self.checkStatus()
+            retVal = self.getStatus()
             if (self._vars['input.current'] >= high) or (self._vars['input.current'] <= low):
                 retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('output_overload',  True)
             else:
@@ -286,7 +296,7 @@ class Blazer_USB(DeviceBase):
     def checkTemperature(self):
         if self._vars.has_key('ups.temperature'):
             high = 40  # TODO : Check what is this ups temperature
-            retVal = self.checkStatus()
+            retVal = self.getStatus()
             if (self._vars['ups.temperature'] >= high) :
                 retVal['modify'], retVal['sensorsData']['event'] = self.handleUPS_Events('temp_high',  True)
             else:
@@ -326,35 +336,35 @@ if __name__ == "__main__" :
     sample2['input.voltage'] = 210
     sample2['ups.status'] ='OB'
     dev = createDevice(DATASAMPLE)
-    print dev.checkConnection(True)
-    print dev.checkStatus(sample2)
-    print dev.checkBattery()
-    print dev.getBatteryCharge()
-    print dev.checkInputVoltage()
+    print( dev.checkConnection(True))
+    print( dev.checkStatus(sample2))
+    print( dev.checkBattery())
+    print( dev.getBatteryCharge())
+    print( dev.checkInputVoltage())
     dev.update(sample2)
-    print dev.checkInputVoltage()
-    print dev.checkInputVoltage()
+    print( dev.checkInputVoltage())
+    print( dev.checkInputVoltage())
     sample2['input.voltage'] = 240
     sample2['ups.status'] ='OL'
     dev.update(sample2)
-    print dev.checkInputVoltage()
-    print dev.checkInputVoltage()
-    print dev.checkOutputVoltage()
+    print( dev.checkInputVoltage())
+    print( dev.checkInputVoltage())
+    print( dev.checkOutputVoltage())
     sample2['output.voltage'] = 260
     dev.update(sample2)
-    print dev.checkOutputVoltage()
-    print dev.checkInputFreq()
-    print dev.checkOutput()
-    print dev.checkTemperature()
+    print( dev.checkOutputVoltage())
+    print( dev.checkInputFreq())
+    print( dev.checkOutput())
+    print( dev.checkTemperature())
     sample2['ups.status'] ='LB'
     dev.update(sample2)
-    print dev.checkBattery()
-    print dev.checkBattery()
+    print( dev.checkBattery())
+    print( dev.checkBattery())
     sample2['ups.status'] ='OB'
     dev.update(sample2)
-    print dev.checkBattery()
-    print dev.checkBattery()
+    print( dev.checkBattery())
+    print( dev.checkBattery())
     sample2['battery.voltage'] = 8
     dev.update(sample2)
-    print dev.checkBattery()
-    print dev.checkAll()
+    print( dev.checkBattery())
+    print( dev.checkAll())

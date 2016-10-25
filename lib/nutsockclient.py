@@ -22,11 +22,11 @@ class NUTSocketClient(asyncore.dispatcher):
         self._waitList = False
         self.connected = False
         self._log = log
-        print u" +++ Internal NUTSocketClient created +++"
+        self._log.info(u" +++ Internal NUTSocketClient created +++")
         self.Connect_to_NUT()
 
     def __del__(self):
-        print u" --- Internal NUTSocketClient deleted ---"
+        self._log.info(u" --- Internal NUTSocketClient deleted ---")
 
     def Connect_to_NUT(self):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,12 +52,11 @@ class NUTSocketClient(asyncore.dispatcher):
 
     def handle_read(self):
         data = self.recv(8192)
-#        print data
         if data :
             if not self._sync :
-                print u"*********** Broadcast Message received , data : ",  data
+                self._log.debug(u"*********** Broadcast Message received : {0}".format(data))
                 if self._cb : self._cb(self.received_message(data))
-                else : print " No callback registered."
+                else : self._log.debug(u" No callback registered.")
             else :
                 lines = data.split('\n')
     #            print 'Handle_read : \n', lines
@@ -86,7 +85,7 @@ class NUTSocketClient(asyncore.dispatcher):
                     self._data = data
 #                    print 'Not List' , self._data
 #            print '++++ END READ +++',  self._data
-        else : print 20*"-" + " No data to read"
+#        else : print 20*"-" + " No data to read"
 
     def writable(self):
         return (len(self.buffer) > 0)

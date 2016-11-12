@@ -163,11 +163,13 @@ class UPSClient(object) :
         if self._timerPollSt: self._timerPollSt.stop()
         self._timerPollValue.stop()
         sensors = self.getDmgSensors()
+        # sensor event before status
+        for sensor in sensors:
+            if sensors[sensor]['data_type'] == 'DT_UPSEvent':
+                self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], 'comms_lost')
         for sensor in sensors:
             if sensors[sensor]['data_type'] == 'DT_UPSState':
                 self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], 'LB')
-            elif sensors[sensor]['data_type'] == 'DT_UPSEvent':
-                self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], 'comms_lost')
 
     def updateDevice(self, dmgDevice):
         """Update device data."""
@@ -334,13 +336,6 @@ class UPSClient(object) :
     def updateUPSVars(self, newStatus=''):
         """Update UPS values and send sensor to MQ."""
         sensors = self.getDmgSensors()
-        if newStatus != '':
-            data = self._nutDevice.checkStatus({'ups.status': newStatus})
-            sId = 'ups.status'.replace('.',  '_', 4) # get sensors domogik id format
-            if data['modify'] :
-                for sensor in sensors:
-                    if sensor == sId:
-                        self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], newStatus)
         self._lock.acquire()
         upsVars = self.getUPSVars()
         if upsVars != {}:
@@ -367,6 +362,14 @@ class UPSClient(object) :
                             if sensor == 'battery-charge':
                                 self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], btCh)
         self._lock.release()
+        # send status at finaly
+        if newStatus != '':
+            data = self._nutDevice.checkStatus({'ups.status': newStatus})
+            sId = 'ups.status'.replace('.',  '_', 4) # get sensors domogik id format
+            if data['modify'] :
+                for sensor in sensors:
+                    if sensor == sId:
+                        self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], newStatus)
 
     def handle_UPS_Msg(self, message):
         """verifie si la valeur est a updater."""
@@ -380,11 +383,13 @@ class UPSClient(object) :
                 data = {'device' : self.domogikDevice}
                 data.update(d['sensorsData'])
                 sensors = self.getDmgSensors()
+                # send event before status
+                for sensor in sensors:
+                    if sensors[sensor]['data_type'] == 'DT_UPSEvent':
+                        self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], d['sensorsData']['event'])
                 for sensor in sensors:
                     if sensors[sensor]['data_type'] == 'DT_UPSState':
                         self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], d['sensorsData']['status'])
-                    elif sensors[sensor]['data_type'] == 'DT_UPSEvent':
-                        self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], d['sensorsData']['event'])
         if not state :
             self._manager.checkNutConnection()
 

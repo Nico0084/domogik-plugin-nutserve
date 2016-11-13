@@ -336,6 +336,15 @@ class UPSClient(object) :
     def updateUPSVars(self, newStatus=''):
         """Update UPS values and send sensor to MQ."""
         sensors = self.getDmgSensors()
+        # set send status after ups event if needed.
+        sendStatus = {}
+        if newStatus != '':
+            data = self._nutDevice.checkStatus({'ups.status': newStatus})
+            sId = 'ups.status'.replace('.',  '_', 4) # get sensors domogik id format
+            if data['modify'] :
+                for sensor in sensors:
+                    if sensor == sId:
+                        sendStatus = {'id': sensors[sensor]['id'], 'data_type': sensors[sensor]['data_type'], 'status': newStatus}
         self._lock.acquire()
         upsVars = self.getUPSVars()
         if upsVars != {}:
@@ -362,14 +371,9 @@ class UPSClient(object) :
                             if sensor == 'battery-charge':
                                 self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], btCh)
         self._lock.release()
-        # send status at finaly
-        if newStatus != '':
-            data = self._nutDevice.checkStatus({'ups.status': newStatus})
-            sId = 'ups.status'.replace('.',  '_', 4) # get sensors domogik id format
-            if data['modify'] :
-                for sensor in sensors:
-                    if sensor == sId:
-                        self._manager.sendSensorValue(sensors[sensor]['id'], sensors[sensor]['data_type'], newStatus)
+        # send status just after ups event and var update, in order to get good ups value at this momment
+        if sendStatus != {} :
+            self._manager.sendSensorValue(sendStatus['id'], sendStatus['data_type'], sendStatus['status'])
 
     def handle_UPS_Msg(self, message):
         """verifie si la valeur est a updater."""

@@ -2,7 +2,7 @@
     "products" : [{
             "name" : "Uninterruptible Power Supplies",
             "id" : "UPS_client",
-            "documentation" : "http://www.irtrans.de/en/",
+            "documentation" : "http://networkupstools.org/",
             "type" : "ups.device"
         }
     ],

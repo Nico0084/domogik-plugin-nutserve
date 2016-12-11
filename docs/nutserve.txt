@@ -11,7 +11,7 @@ Last change
 ===========
 New instructions to apply changes from immediatly previous version.
 
-- 0.3.0 : (16-09-2016) First published version for domogik 0.5
+- 0.2.0 : (11-12-2016) First published version for domogik 0.5
     - Version without xpl, work with 0MQ
     - Update device_type, recreate domogik device with them.
 

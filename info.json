@@ -198,7 +198,7 @@
         "dependencies" : [],
         "description" : "Monitor UPS (Uninterruptible Power Supplies) through NUT lib",
         "domogik_min_version" : "0.5.0",
-        "name" : "nutserver",
+        "name" : "nutserve",
          "type" : "plugin",
         "version" : "0.2.0"
     },

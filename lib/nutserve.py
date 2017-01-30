@@ -35,7 +35,7 @@ class UpsManager :
         self.nut = None
         try :
             self.connectNUTServer()
-            self._plugin.log.debug(u"---- NUT UPS list ----\n".format(self.nut.getUPSList()))
+            self._plugin.log.debug(u"---- NUT UPS list ----\n {0}".format(self.nut.getUPSList()))
         except :
             pass
         self._plugin.log.info(u"Manager UPS Clients is ready.")

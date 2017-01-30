@@ -117,7 +117,10 @@ class UPSClient(object) :
         self.upsName = str(self.domogikDevice)
         self._log = log
         self._log.info(u"Creating UPSClient {0} ...".format(self.upsName))
-        self.status = ""
+        try :
+            self.status = self._dmgDevice['sensors']['ups_status']['last_value']
+        except :
+            self.status = ""
         self._connected = False
         self._nutDevice = None
         self._typeVars = {}

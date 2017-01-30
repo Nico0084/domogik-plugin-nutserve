@@ -36,7 +36,7 @@ class DeviceBase(object):
         - Developper : Use on inherite class to impllement new driver class
                 Overwrite  methods to handle UPS event."""
 
-    def __init__(self,  data, log=None):
+    def __init__(self, data, log=None):
         """ Not necessary overwrited.
             @param data : dict with all NUT vars formated by type.
                 type : dict
@@ -50,7 +50,7 @@ class DeviceBase(object):
         self.log.debug(u"Init device with : {0}".format(self._vars))
         self.checkAll()
 
-    def update(self,  data):
+    def update(self, data):
         """ Create or update internal data.
             @param data : dict with all NUT vars formated by type.
                 type : dict
